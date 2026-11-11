@@ -1,0 +1,80 @@
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { c, f, hairline } from '@/theme';
+
+export default function TabsLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: c.mint700,
+        tabBarInactiveTintColor: c.soft,
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: c.paper,
+          borderTopColor: c.line,
+          borderTopWidth: hairline,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontFamily: f.semibold,
+          fontSize: 10,
+          letterSpacing: 0.2,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Beranda',
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'home' : 'home-outline'}
+              size={22}
+              color={focused ? c.mint700 : c.soft}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="jelajahi"
+        options={{
+          title: 'Jelajahi',
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'compass' : 'compass-outline'}
+              size={22}
+              color={focused ? c.mint700 : c.soft}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ulasan"
+        options={{
+          title: 'Ulasan',
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
+              size={22}
+              color={focused ? c.mint700 : c.soft}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="akun"
+        options={{
+          title: 'Akun',
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              size={22}
+              color={focused ? c.mint700 : c.soft}
+            />
+          ),
+        }}
+      />
+    </Tabs>
+  );
+}
