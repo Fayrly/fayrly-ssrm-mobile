@@ -28,7 +28,7 @@ export function AuthShell({
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/');
+      router.replace('/masuk');
     }
   };
 

@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuthShell } from '@/components/auth-shell';
@@ -69,13 +69,6 @@ export default function RegisterScreen() {
         password,
         phone: trimmedPhone || undefined,
       });
-      if (destination) {
-        router.replace(destination as Href);
-      } else if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
     } catch (cause) {
       setError(registerError(cause));
       setLoading(false);

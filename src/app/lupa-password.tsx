@@ -1,11 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuthShell } from '@/components/auth-shell';
 import { Button, ErrorBanner, Field } from '@/components/ui';
 import { ApiError, requestPasswordReset, resetPassword, verifyResetCode } from '@/lib/api';
 import { c, f, radius } from '@/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Step = 'confirm' | 'otp' | 'password' | 'done';
 
