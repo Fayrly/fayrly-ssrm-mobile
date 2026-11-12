@@ -14,6 +14,7 @@ import {
   bindAuthBridge,
   fetchMe,
   login as loginRequest,
+  loginWithFirebase as firebaseLoginRequest,
   logoutRequest,
   refreshSession,
   register as registerRequest,
@@ -57,6 +58,7 @@ interface AuthValue {
   user: SessionUser | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<Session>;
+  loginWithFirebase: (idToken: string) => Promise<Session>;
   register: (payload: RegisterPayload) => Promise<Session>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -157,6 +159,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
+  const loginWithFirebase = useCallback(
+    async (idToken: string) => {
+      const next = await firebaseLoginRequest(idToken);
+      sessionRef.current = next;
+      setSession(next);
+      await persist(next);
+      return next;
+    },
+    [persist],
+  );
+
   const register = useCallback(
     async (payload: RegisterPayload) => {
       const next = await registerRequest(payload);
@@ -198,11 +211,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       isAuthenticated: session !== null,
       login,
+      loginWithFirebase,
       register,
       logout,
       refreshUser,
     }),
-    [ready, session, login, register, logout, refreshUser],
+    [ready, session, login, loginWithFirebase, register, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

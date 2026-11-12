@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AuthShell } from '@/components/auth-shell';
-import { Button, ErrorBanner, Field } from '@/components/ui';
+import { Button, Field, NoticeModal } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { safeNext } from '@/lib/navigation';
@@ -140,8 +140,6 @@ export default function RegisterScreen() {
         onSubmitEditing={submit}
       />
 
-      {error ? <ErrorBanner message={error} /> : null}
-
       <Button label="Daftar" onPress={submit} loading={loading} />
 
       <View style={styles.footer}>
@@ -160,6 +158,12 @@ export default function RegisterScreen() {
       <Text style={styles.legal}>
         Dengan mendaftar, kamu setuju memakai data akun hanya untuk keperluan event di Fayrly.
       </Text>
+
+      <NoticeModal
+        title="Pendaftaran belum berhasil"
+        message={error}
+        onClose={() => setError(null)}
+      />
     </AuthShell>
   );
 }

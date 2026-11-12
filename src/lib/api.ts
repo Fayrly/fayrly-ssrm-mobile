@@ -261,6 +261,13 @@ export function login(email: string, password: string): Promise<Session> {
   });
 }
 
+export function loginWithFirebase(idToken: string): Promise<Session> {
+  return request<Session>('/auth/firebase', {
+    method: 'POST',
+    body: JSON.stringify({ id_token: idToken }),
+  });
+}
+
 export function register(payload: RegisterPayload): Promise<Session> {
   return request<Session>('/auth/register', {
     method: 'POST',

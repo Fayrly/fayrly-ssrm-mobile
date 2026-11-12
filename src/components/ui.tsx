@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import {
@@ -383,6 +384,39 @@ export function ProgressBar({ percent }: { percent: number }) {
   );
 }
 
+export function NoticeModal({
+  title,
+  message,
+  onClose,
+}: {
+  title: string;
+  message: string | null;
+  onClose: () => void;
+}) {
+  // Keep the last message so the text stays visible while the modal fades out.
+  const [shown, setShown] = useState(message);
+  if (message && message !== shown) {
+    setShown(message);
+  }
+  const { width } = useWindowDimensions();
+  const iconSize = Math.round(Math.min(Math.max(width * 0.17, 60), 76));
+
+  return (
+    <Modal visible={message !== null} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.noticeWrap}>
+        <BlurView intensity={28} tint="dark" style={styles.fill} />
+        <Pressable style={[styles.fill, styles.noticeScrim]} onPress={onClose} accessibilityLabel="Tutup pemberitahuan" />
+        <View style={styles.noticeCard} accessibilityRole="alert">
+          <Ionicons name="alert-circle-outline" size={iconSize} color={c.crimson} />
+          <Text style={styles.noticeTitle}>{title}</Text>
+          <Text style={styles.noticeMessage}>{shown}</Text>
+          <Button label="Mengerti" onPress={onClose} style={styles.noticeButton} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export function Sheet({
   visible,
   onClose,
@@ -717,6 +751,53 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: c.mint200,
     marginBottom: 16,
+  },
+  noticeWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  fill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  noticeScrim: {
+    backgroundColor: 'rgba(18,38,31,0.28)',
+  },
+  noticeCard: {
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+    backgroundColor: c.paper,
+    borderRadius: radius.lg,
+    paddingHorizontal: 24,
+    paddingTop: 26,
+    paddingBottom: 20,
+  },
+  noticeTitle: {
+    fontFamily: f.bold,
+    fontSize: 17,
+    lineHeight: 24,
+    letterSpacing: -0.3,
+    color: c.ink,
+    textAlign: 'center',
+    marginTop: 14,
+  },
+  noticeMessage: {
+    fontFamily: f.regular,
+    fontSize: 13,
+    lineHeight: 20,
+    color: c.muted,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  noticeButton: {
+    alignSelf: 'stretch',
+    marginTop: 22,
   },
   emptyNotice: {
     marginHorizontal: 20,

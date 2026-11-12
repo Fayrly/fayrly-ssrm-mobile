@@ -1,15 +1,17 @@
 import { SPLASH_LOGO_HEIGHT, SPLASH_LOGO_WIDTH } from '@/components/brand-splash';
-import { Button, ErrorBanner, Field } from '@/components/ui';
+import { Button, Field, NoticeModal, type IconName } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 import { useAppVisible } from '@/lib/app-visibility';
 import { useAuth } from '@/lib/auth';
-import { safeNext } from '@/lib/navigation';
+import { providerErrorMessage, providerIdToken, type OAuthProviderName } from '@/lib/oauth';
 import { c, f, radius } from '@/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   KeyboardAvoidingView,
@@ -26,9 +28,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const LOGO_GAP = 62;
 const CARD_GAP = 40;
 
+const OAUTH_PROVIDERS: { name: OAuthProviderName; icon: IconName }[] = [
+  { name: 'Google', icon: 'logo-google' },
+  { name: 'Apple', icon: 'logo-apple' },
+];
+
 export default function LoginScreen() {
-  const { next } = useLocalSearchParams<{ next?: string }>();
-  const { login } = useAuth();
+  const { login, loginWithFirebase } = useAuth();
   const appVisible = useAppVisible();
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -37,11 +43,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProviderName | null>(null);
+  const busy = loading || oauthLoading !== null;
 
   const [rise] = useState(() => new Animated.Value(0));
   const [card] = useState(() => new Animated.Value(0));
-
-  const destination = safeNext(next);
 
   const logoTop = insets.top + LOGO_GAP;
   const cardTop = logoTop + SPLASH_LOGO_HEIGHT + CARD_GAP;
@@ -86,7 +92,7 @@ export default function LoginScreen() {
   });
 
   const submit = async () => {
-    if (loading) {
+    if (busy) {
       return;
     }
     setError(null);
@@ -105,6 +111,21 @@ export default function LoginScreen() {
     } catch (cause) {
       setError(loginError(cause));
       setLoading(false);
+    }
+  };
+
+  const signInWith = async (provider: OAuthProviderName) => {
+    if (busy) {
+      return;
+    }
+    setError(null);
+    setOauthLoading(provider);
+    try {
+      const idToken = await providerIdToken(provider);
+      await loginWithFirebase(idToken);
+    } catch (cause) {
+      setError(oauthError(cause, provider));
+      setOauthLoading(null);
     }
   };
 
@@ -174,9 +195,12 @@ export default function LoginScreen() {
                 <Text style={styles.forgotText}>Lupa kata sandi?</Text>
               </Pressable>
 
-              {error ? <ErrorBanner message={error} /> : null}
-
-              <Button label="Masuk" onPress={submit} loading={loading} />
+              <Button
+                label="Masuk"
+                onPress={submit}
+                loading={loading}
+                disabled={oauthLoading !== null}
+              />
               {/* <Pressable
                 onPress={() => router.push({ pathname: '/lupa-password' })}
                 hitSlop={10}
@@ -187,14 +211,43 @@ export default function LoginScreen() {
               </Pressable> */}
             </View>
 
-            <View>
-              <Text style={styles.orUse} accessibilityRole="header">
-              Atau Gunakan
-            </Text>
+            <View style={styles.oauth}>
+              <Text style={styles.orUse}>Atau gunakan</Text>
+
+              <View style={styles.oauthRow}>
+                {OAUTH_PROVIDERS.map(({ name, icon }) => (
+                  <Pressable
+                    key={name}
+                    onPress={() => signInWith(name)}
+                    disabled={busy}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Masuk dengan ${name}`}
+                    accessibilityState={{ disabled: busy, busy: oauthLoading === name }}
+                    style={({ pressed }) => [
+                      styles.oauthButton,
+                      pressed && !busy && styles.pressed,
+                      busy && oauthLoading !== name && styles.oauthDisabled,
+                    ]}
+                  >
+                    {oauthLoading === name ? (
+                      <ActivityIndicator size="small" color={c.mint700} />
+                    ) : (
+                      <Ionicons name={icon} size={22} color={c.ink} />
+                    )}
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.courtesy}>
+              <Text style={styles.courtesyText}>Member Of</Text>
+              <Text style={styles.courtesyText}>PT Fatamorgana Abadi Indah Harapan Angkasa</Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </Animated.View>
+
+      <NoticeModal title="Tidak dapat masuk" message={error} onClose={() => setError(null)} />
     </View>
   );
 }
@@ -219,6 +272,29 @@ function loginError(error: unknown): string {
     return error.message;
   }
   return 'Tidak dapat terhubung ke server. Periksa koneksimu.';
+}
+
+function oauthError(error: unknown, provider: OAuthProviderName): string {
+  const providerMessage = providerErrorMessage(error, provider);
+  if (providerMessage) {
+    return providerMessage;
+  }
+  if (error instanceof ApiError) {
+    switch (error.status) {
+      case 401:
+        return `Sesi ${provider} tidak valid. Coba masuk lagi.`;
+      case 403:
+        return 'Email akun ini belum terverifikasi di penyedia masuk.';
+      case 409:
+        return 'Email ini sudah terhubung dengan metode masuk lain.';
+      case 429:
+        return 'Terlalu banyak percobaan. Coba lagi nanti.';
+      case 503:
+        return `Masuk dengan ${provider} belum dikonfigurasi di server.`;
+    }
+    return loginError(error);
+  }
+  return `Tidak dapat masuk dengan ${provider}. Coba lagi.`;
 }
 
 const styles = StyleSheet.create({
@@ -324,10 +400,40 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     paddingHorizontal: 6,
   },
+  oauth: {
+    marginTop: 28,
+    gap: 12,
+  },
+  oauthRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  oauthButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  oauthDisabled: {
+    opacity: 0.5,
+  },
   orUse: {
     alignSelf: 'center',
     fontFamily: f.medium,
-    fontSize: 13,
-    marginTop: 50
+    fontSize: 12,
+    color: c.muted,
+  },
+  courtesy: {
+    marginTop: 120,
+    alignSelf: 'center',
+  },
+  courtesyText: {
+    fontFamily: f.bold,
+    fontSize: 8,
+    color: '#9c9d9d'
   }
 });
