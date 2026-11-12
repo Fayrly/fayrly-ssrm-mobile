@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { c, f } from '@/theme';
 
 export const SPLASH_LOGO_WIDTH = 200;
-export const SPLASH_LOGO_HEIGHT = 56;
+export const SPLASH_LOGO_HEIGHT = 72;
 
 export function BrandSplash() {
   return (
@@ -16,7 +16,7 @@ export function BrandSplash() {
         contentFit="contain"
         accessibilityLabel="Fayrly"
       />
-      <Text style={styles.tagline}>Event di sekitarmu</Text>
+      <Text style={styles.tagline}>PT Fatamorgana Abadi Indah Harapan Angkasa</Text>
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -8,6 +9,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -15,12 +17,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReviewCard } from '@/components/review-card';
+import { VenueMap } from '@/components/venue-map';
 import {
   Avatar,
   Button,
   EmptyNotice,
   ErrorBanner,
-  IconTile,
   ProgressBar,
   Screen,
   SectionHead,
@@ -43,7 +45,6 @@ import {
   formatLongDate,
   formatMoney,
   formatNumber,
-  formatPriceRange,
   formatTimeRange,
   initials,
 } from '@/lib/format';
@@ -71,6 +72,7 @@ export default function EventDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
 
   const event = eventQuery.data;
   const reviews = reviewsQuery.data?.data ?? [];
@@ -81,6 +83,29 @@ export default function EventDetailScreen() {
     event && (event.donation_target ?? 0) > 0
       ? Math.min(100, Math.round(((event.donation_raised ?? 0) / (event.donation_target ?? 1)) * 100))
       : 0;
+
+  const showNote = (text: string) => {
+    setShareNote(text);
+    setTimeout(() => setShareNote(null), 2600);
+  };
+
+  const shareEvent = async () => {
+    if (!event) {
+      return;
+    }
+    const url = Linking.createURL(`/events/${event.slug}`);
+    const message = `${event.title} di Fayrly\n${url}`;
+    try {
+      await Share.share({ message, url, title: event.title });
+    } catch {
+      try {
+        await navigator.clipboard.writeText(message);
+        showNote('Tautan event disalin.');
+      } catch {
+        showNote('Berbagi belum didukung di perangkat ini.');
+      }
+    }
+  };
 
   const submitReview = async () => {
     if (!event || submitting) {
@@ -122,11 +147,9 @@ export default function EventDetailScreen() {
   if (eventQuery.loading) {
     return (
       <Screen>
-        <View style={styles.backRow}>
-          <BackButton />
-        </View>
+        <Header />
         <View style={styles.loading}>
-          <Skeleton height={210} radius={radius.lg} />
+          <Skeleton height={210} radius={radius.xl} />
           <Skeleton height={24} width="80%" style={{ marginTop: 20 }} />
           <Skeleton height={14} width="50%" />
           <Skeleton height={120} radius={radius.md} style={{ marginTop: 22 }} />
@@ -140,9 +163,7 @@ export default function EventDetailScreen() {
   if (eventQuery.errorStatus === 404) {
     return (
       <Screen>
-        <View style={styles.backRow}>
-          <BackButton />
-        </View>
+        <Header />
         <StateBlock
           title="Event tidak ditemukan"
           body="Tautan mungkin sudah berubah atau event telah dihapus."
@@ -157,9 +178,7 @@ export default function EventDetailScreen() {
   if (!event) {
     return (
       <Screen>
-        <View style={styles.backRow}>
-          <BackButton />
-        </View>
+        <Header />
         <StateBlock
           title="Detail event belum bisa dimuat"
           body={eventQuery.error ?? 'Terjadi kesalahan saat memuat data.'}
@@ -175,7 +194,10 @@ export default function EventDetailScreen() {
   const typeLabel = EVENT_TYPE_LABEL[event.type] ?? 'Event';
 
   return (
-    <Screen edges={[]} style={{ paddingTop: insets.top }}>
+    <Screen>
+      <Header onShare={shareEvent} />
+      {shareNote ? <Text style={styles.shareNote}>{shareNote}</Text> : null}
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -207,20 +229,15 @@ export default function EventDetailScreen() {
                 <Ionicons name="image-outline" size={40} color={c.mint300} />
               </View>
             )}
-            <View style={styles.backOverlay}>
-              <BackButton />
-            </View>
-            <View style={styles.typeTag}>
-              <Text style={styles.typeTagText}>{typeLabel}</Text>
-            </View>
           </View>
 
           <View style={styles.intro}>
-            <Text style={styles.introKicker}>
-              {formatLongDate(event.starts_at)} · {formatTimeRange(event.starts_at, event.ends_at)}
-            </Text>
+            <Text style={styles.introKicker}>{typeLabel}</Text>
             <Text style={styles.title} accessibilityRole="header">
               {event.title}
+            </Text>
+            <Text style={styles.introMeta}>
+              {formatLongDate(event.starts_at)} · {formatTimeRange(event.starts_at, event.ends_at)}
             </Text>
             <View style={styles.organizerLine}>
               <Avatar name={event.organizer_name || 'Fayrly'} size={26} />
@@ -237,26 +254,44 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
 
-          <View style={styles.facts}>
-            <Fact
-              icon="calendar-outline"
-              label="Tanggal"
-              value={formatLongDate(event.starts_at)}
-            />
-            <Fact
-              icon="time-outline"
-              label="Waktu"
-              value={formatTimeRange(event.starts_at, event.ends_at)}
-            />
-            <Fact
-              icon="location-outline"
-              label="Lokasi"
-              value={[event.venue_name, event.venue_address, event.city]
-                .filter(Boolean)
-                .join(', ')}
-              last
-            />
+          <SectionHead label="Deskripsi" />
+          <View style={styles.descriptionBlock}>
+            <Text style={styles.description} numberOfLines={expanded ? undefined : 6}>
+              {event.description || 'Penyelenggara belum menuliskan deskripsi untuk event ini.'}
+            </Text>
+            {(event.description?.length ?? 0) > 300 ? (
+              <Pressable
+                onPress={() => setExpanded((current) => !current)}
+                hitSlop={8}
+                accessibilityRole="button"
+                style={styles.more}
+              >
+                <Text style={styles.moreText}>{expanded ? 'Ringkas' : 'Baca selengkapnya'}</Text>
+                <Ionicons
+                  name={expanded ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={c.mint700}
+                />
+              </Pressable>
+            ) : null}
+            {event.tags.length > 0 ? (
+              <View style={styles.tags}>
+                {event.tags.map((tag) => (
+                  <View key={tag} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </View>
+
+          <SectionHead label="Lokasi & venue" />
+          <VenueMap
+            venueName={event.venue_name}
+            venueAddress={event.venue_address}
+            city={event.city}
+            country={event.country}
+          />
 
           <View style={styles.stats}>
             <View style={styles.stat}>
@@ -317,37 +352,6 @@ export default function EventDetailScreen() {
               </Text>
             </View>
           ) : null}
-
-          <SectionHead label="Tentang event" />
-          <View style={styles.descriptionBlock}>
-            <Text style={styles.description} numberOfLines={expanded ? undefined : 6}>
-              {event.description || 'Penyelenggara belum menuliskan deskripsi untuk event ini.'}
-            </Text>
-            {(event.description?.length ?? 0) > 300 ? (
-              <Pressable
-                onPress={() => setExpanded((current) => !current)}
-                hitSlop={8}
-                accessibilityRole="button"
-                style={styles.more}
-              >
-                <Text style={styles.moreText}>{expanded ? 'Ringkas' : 'Baca selengkapnya'}</Text>
-                <Ionicons
-                  name={expanded ? 'chevron-up' : 'chevron-down'}
-                  size={14}
-                  color={c.mint700}
-                />
-              </Pressable>
-            ) : null}
-            {event.tags.length > 0 ? (
-              <View style={styles.tags}>
-                {event.tags.map((tag) => (
-                  <View key={tag} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-          </View>
 
           <SectionHead label="Ulasan peserta" />
           <View style={styles.reviewSummary}>
@@ -446,15 +450,14 @@ export default function EventDetailScreen() {
 
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <View style={styles.footerPrice}>
-            <Text style={styles.footerLabel}>Harga tiket</Text>
+            <Text style={styles.footerLabel}>Mulai dari</Text>
             <Text style={styles.footerValue}>
-              {formatPriceRange(event.price_min, event.price_max, event.currency)}
+              {formatCompactPrice(event.price_min, event.currency)}
             </Text>
           </View>
           <Button
             label={canBuy ? 'Pilih tiket' : 'Tiket belum tersedia'}
             disabled={!canBuy}
-            icon={canBuy ? 'ticket-outline' : undefined}
             onPress={() =>
               router.push({ pathname: '/events/[slug]/tiket', params: { slug: event.slug } })
             }
@@ -466,24 +469,26 @@ export default function EventDetailScreen() {
   );
 }
 
-function Fact({
-  icon,
-  label,
-  value,
-  last,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  last?: boolean;
-}) {
+function Header({ onShare }: { onShare?: () => void }) {
   return (
-    <View style={[styles.fact, !last && styles.factDivider]}>
-      <IconTile name={icon} />
-      <View style={styles.factText}>
-        <Text style={styles.factLabel}>{label}</Text>
-        <Text style={styles.factValue}>{value || 'Belum diisi'}</Text>
-      </View>
+    <View style={styles.header}>
+      <BackButton />
+      <Text style={styles.headerTitle} accessibilityRole="header">
+        Detail Event
+      </Text>
+      {onShare ? (
+        <Pressable
+          onPress={onShare}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Bagikan event"
+          style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+        >
+          <Ionicons name="share-social-outline" size={19} color={c.ink} />
+        </Pressable>
+      ) : (
+        <View style={styles.headerSpacer} />
+      )}
     </View>
   );
 }
@@ -495,7 +500,7 @@ function BackButton() {
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel="Kembali"
-      style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
     >
       <Ionicons name="arrow-back" size={20} color={c.ink} />
     </Pressable>
@@ -506,11 +511,26 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  backRow: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingTop: 8,
+    paddingBottom: 10,
   },
-  backButton: {
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: f.semibold,
+    fontSize: 16,
+    letterSpacing: -0.3,
+    color: c.ink,
+  },
+  headerSpacer: {
+    width: 42,
+  },
+  iconButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -520,8 +540,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  shareNote: {
+    fontFamily: f.medium,
+    fontSize: 10,
+    color: c.mint700,
+    textAlign: 'center',
+    paddingBottom: 6,
+  },
   cover: {
-    height: 236,
+    marginHorizontal: 20,
+    height: 214,
+    borderRadius: radius.xl,
     backgroundColor: c.mint100,
     overflow: 'hidden',
   },
@@ -534,51 +563,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backOverlay: {
-    position: 'absolute',
-    top: 14,
-    left: 16,
-  },
-  typeTag: {
-    position: 'absolute',
-    bottom: 14,
-    left: 20,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    backgroundColor: c.paper,
-  },
-  typeTagText: {
-    fontFamily: f.semibold,
-    fontSize: 10,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: c.mint700,
-  },
   intro: {
     paddingHorizontal: 20,
     paddingTop: 18,
-    gap: 8,
+    gap: 6,
   },
   introKicker: {
-    fontFamily: f.medium,
+    fontFamily: f.semibold,
     fontSize: 10,
-    letterSpacing: 0.5,
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
     color: c.mint700,
   },
   title: {
     fontFamily: f.bold,
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: -0.7,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.9,
     color: c.ink,
+  },
+  introMeta: {
+    fontFamily: f.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: c.muted,
   },
   organizerLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 2,
+    marginTop: 4,
   },
   organizerName: {
     fontFamily: f.regular,
@@ -602,47 +616,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: c.crimson,
   },
-  facts: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    overflow: 'hidden',
-  },
-  fact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-  },
-  factDivider: {
-    borderBottomWidth: hairline,
-    borderBottomColor: c.line,
-  },
-  factText: {
-    flex: 1,
-    gap: 2,
-  },
-  factLabel: {
-    fontFamily: f.medium,
-    fontSize: 10,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: c.soft,
-  },
-  factValue: {
-    fontFamily: f.medium,
-    fontSize: 13,
-    lineHeight: 19,
-    color: c.ink,
-  },
   stats: {
     flexDirection: 'row',
     alignItems: 'stretch',
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 18,
     paddingVertical: 14,
     borderTopWidth: hairline,
     borderBottomWidth: hairline,
@@ -911,7 +889,7 @@ const styles = StyleSheet.create({
   },
   loading: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 2,
   },
   footer: {
     position: 'absolute',
@@ -938,12 +916,14 @@ const styles = StyleSheet.create({
   },
   footerValue: {
     fontFamily: f.semibold,
-    fontSize: 14,
-    letterSpacing: -0.2,
+    fontSize: 16,
+    letterSpacing: -0.3,
     color: c.ink,
   },
   footerButton: {
     minWidth: 150,
+    borderRadius: radius.pill,
+    paddingHorizontal: 24,
   },
   pressed: {
     opacity: 0.75,

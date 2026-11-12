@@ -182,7 +182,6 @@ export default function ExploreScreen() {
   return (
     <Screen>
       <PageHeader
-        kicker="Jelajahi"
         heading="Temukan event"
         subtitle="Filter berdasarkan kategori, tanggal, dan kota."
       />

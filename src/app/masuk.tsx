@@ -1,4 +1,5 @@
 import { SPLASH_LOGO_HEIGHT, SPLASH_LOGO_WIDTH } from '@/components/brand-splash';
+import { WaveBackdrop } from '@/components/wave-backdrop';
 import { Button, Field, NoticeModal, type IconName } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 import { useAppVisible } from '@/lib/app-visibility';
@@ -90,6 +91,10 @@ export default function LoginScreen() {
     inputRange: [0, 1],
     outputRange: [height - cardTop + 24, 0],
   });
+  const waveOpacity = card.interpolate({
+    inputRange: [0, 0.4, 0.9],
+    outputRange: [0, 0, 1],
+  });
 
   const submit = async () => {
     if (busy) {
@@ -133,7 +138,9 @@ export default function LoginScreen() {
     <View style={styles.screen}>
       <StatusBar style="light" />
 
-
+      <Animated.View pointerEvents="none" style={[styles.waveLayer, { height: cardTop + 32, opacity: waveOpacity }]}>
+        <WaveBackdrop />
+      </Animated.View>
 
       <Animated.View
         pointerEvents="none"
@@ -158,7 +165,10 @@ export default function LoginScreen() {
             showsVerticalScrollIndicator={false}
           >
             <Text style={styles.title} accessibilityRole="header">
-              Selamat datang kembali
+              Halo! Siap nonton bareng?
+            </Text>
+            <Text style={styles.stitle} accessibilityRole="header">
+              Masuk buat lihat tiket dan konser incaranmu.
             </Text>
 
             <View style={styles.form}>
@@ -239,10 +249,10 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <View style={styles.courtesy}>
+            {/* <View style={styles.courtesy}>
               <Text style={styles.courtesyText}>Member Of</Text>
               <Text style={styles.courtesyText}>PT Fatamorgana Abadi Indah Harapan Angkasa</Text>
-            </View>
+            </View> */}
           </ScrollView>
         </KeyboardAvoidingView>
       </Animated.View>
@@ -337,6 +347,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: c.paper,
   },
+  waveLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
   logoWrap: {
     position: 'absolute',
     left: 0,
@@ -370,15 +386,14 @@ const styles = StyleSheet.create({
     fontSize: 25,
     lineHeight: 31,
     letterSpacing: -0.7,
-    color: c.ink,
+    color: '#0A2A20',
   },
-  subtitle: {
-    fontFamily: f.regular,
-    fontSize: 12.5,
-    lineHeight: 19,
-    color: c.muted,
-    marginTop: 6,
-    maxWidth: 340,
+  stitle: {
+    fontFamily: f.semibold,
+    fontSize: 15,
+    lineHeight: 17,
+    letterSpacing: -0.7,
+    color: c.ink,
   },
   form: {
     marginTop: 22,

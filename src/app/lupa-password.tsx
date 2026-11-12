@@ -4,15 +4,94 @@ import { ApiError, requestPasswordReset, resetPassword, verifyResetCode } from '
 import { c, f, radius } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import type { ComponentRef } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 type Step = 'confirm' | 'otp' | 'password' | 'done';
+
+const OTP_LENGTH = 6;
+const emptyOtp = () => Array.from({ length: OTP_LENGTH }, () => '');
+
+function OtpInput({
+  digits,
+  onChange,
+  disabled,
+}: {
+  digits: string[];
+  onChange: (digits: string[]) => void;
+  disabled?: boolean;
+}) {
+  const inputs = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
+  const [focused, setFocused] = useState<number | null>(null);
+
+  const focusAt = (index: number) => {
+    const target = Math.max(0, Math.min(OTP_LENGTH - 1, index));
+    inputs.current[target]?.focus();
+  };
+
+  const setDigit = (index: number, text: string) => {
+    const clean = text.replace(/\D/g, '');
+    const next = digits.slice();
+    if (!clean) {
+      next[index] = '';
+      onChange(next);
+      return;
+    }
+    for (let offset = 0; offset < clean.length && index + offset < OTP_LENGTH; offset += 1) {
+      next[index + offset] = clean.charAt(offset);
+    }
+    onChange(next);
+    focusAt(index + clean.length);
+  };
+
+  return (
+    <View style={styles.otpWrap}>
+      <Text style={styles.otpLabel}>Kode OTP</Text>
+      <View style={styles.otpRow}>
+        {digits.map((digit, index) => (
+          <TextInput
+            key={index}
+            ref={(element) => {
+              inputs.current[index] = element;
+            }}
+            value={digit}
+            onChangeText={(text) => setDigit(index, text)}
+            onKeyPress={({ nativeEvent }) => {
+              if (nativeEvent.key === 'Backspace' && !digits[index] && index > 0) {
+                const next = digits.slice();
+                next[index - 1] = '';
+                onChange(next);
+                focusAt(index - 1);
+              }
+            }}
+            onFocus={() => setFocused(index)}
+            onBlur={() => setFocused(null)}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            autoComplete={index === 0 ? 'one-time-code' : 'off'}
+            textContentType={index === 0 ? 'oneTimeCode' : 'none'}
+            maxLength={OTP_LENGTH}
+            selectTextOnFocus
+            editable={!disabled}
+            autoFocus={index === 0}
+            accessibilityLabel={`Angka OTP ke-${index + 1}`}
+            style={[
+              styles.otpBox,
+              focused === index && styles.otpBoxFocused,
+              disabled && styles.otpBoxDisabled,
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
 
 export default function ForgotPasswordScreen() {
   const [step, setStep] = useState<Step>('confirm');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState<string[]>(emptyOtp);
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [loading, setLoading] = useState(false);
@@ -61,13 +140,13 @@ export default function ForgotPasswordScreen() {
     }
     setError(null);
     setNotice(null);
-    if (!/^\d{6}$/.test(code)) {
+    if (!/^\d{6}$/.test(code.join(''))) {
       setError('Kode OTP terdiri dari 6 angka.');
       return;
     }
     setLoading(true);
     try {
-      await verifyResetCode(email, code);
+      await verifyResetCode(email, code.join(''));
       setCooldown(0);
       setStep('password');
     } catch (cause) {
@@ -100,7 +179,7 @@ export default function ForgotPasswordScreen() {
     }
     setLoading(true);
     try {
-      await resetPassword(email, code, password);
+      await resetPassword(email, code.join(''), password);
       setPassword('');
       setConfirmation('');
       setStep('done');
@@ -120,7 +199,7 @@ export default function ForgotPasswordScreen() {
     setResending(true);
     try {
       await requestPasswordReset(email);
-      setCode('');
+      setCode(emptyOtp());
       setNotice('Kode baru sudah dikirim. Periksa kotak masuk dan folder spam.');
       setCooldown(60);
     } catch (cause) {
@@ -156,7 +235,6 @@ export default function ForgotPasswordScreen() {
 
   return (
     <AuthShell
-      step={{ current: step === 'confirm' ? 1 : step === 'otp' ? 2 : 3, total: 3 }}
       title={step === 'confirm' ? 'Lupa kata sandi' : step === 'otp' ? 'Periksa email kamu' : 'Kata sandi baru'}
       subtitle={
         step === 'confirm'
@@ -188,18 +266,7 @@ export default function ForgotPasswordScreen() {
 
       {step === 'otp' ? (
         <>
-          <Field
-            label="Kode OTP"
-            value={code}
-            onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="6 angka"
-            keyboardType="number-pad"
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            maxLength={6}
-            returnKeyType="go"
-            onSubmitEditing={submitCode}
-          />
+          <OtpInput digits={code} onChange={setCode} disabled={loading} />
           {error ? <ErrorBanner message={error} /> : null}
           {notice ? (
             <View style={styles.notice}>
@@ -226,7 +293,7 @@ export default function ForgotPasswordScreen() {
           <Pressable
             onPress={() => {
               setStep('confirm');
-              setCode('');
+              setCode(emptyOtp());
               setError(null);
               setNotice(null);
               setCooldown(0);
@@ -346,6 +413,41 @@ function resetError(error: unknown): string {
 }
 
 const styles = StyleSheet.create({
+  otpWrap: {
+    gap: 7,
+  },
+  otpLabel: {
+    fontFamily: f.medium,
+    fontSize: 12,
+    color: c.muted,
+  },
+  otpRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  otpBox: {
+    flexGrow: 1,
+    flexBasis: 0,
+    width: 0,
+    minWidth: 0,
+    height: 56,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.paper,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    paddingVertical: 0,
+    fontFamily: f.semibold,
+    fontSize: 20,
+    color: c.ink,
+  },
+  otpBoxFocused: {
+    borderColor: c.mint600,
+  },
+  otpBoxDisabled: {
+    opacity: 0.5,
+  },
   center: {
     alignSelf: 'center',
     paddingVertical: 2,

@@ -33,7 +33,6 @@ export default function AccountScreen() {
     return (
       <Screen>
         <PageHeader
-          kicker="Akun"
           heading="Masuk ke Fayrly"
           subtitle="Simpan event, tulis ulasan, dan kelola tiket dalam satu akun."
         />
@@ -75,7 +74,7 @@ export default function AccountScreen() {
 
   return (
     <Screen>
-      <PageHeader kicker="Akun" heading="Profil kamu" />
+      <PageHeader heading="Profil kamu" />
       <View style={styles.profile}>
         <Avatar name={user.name} size={64} />
         <View style={styles.profileText}>

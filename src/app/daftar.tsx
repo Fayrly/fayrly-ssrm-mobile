@@ -146,7 +146,7 @@ export default function RegisterScreen() {
         <Text style={styles.footerText}>Sudah punya akun?</Text>
         <Pressable
           onPress={() =>
-            router.push({ pathname: '/masuk', params: destination ? { next: destination } : {} })
+            router.push({ pathname: '/', params: destination ? { next: destination } : {} })
           }
           hitSlop={8}
           accessibilityRole="link"

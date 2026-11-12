@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import {
@@ -16,12 +17,10 @@ import { c, f } from '@/theme';
 export function AuthShell({
   title,
   subtitle,
-  step,
   children,
 }: {
   title: string;
   subtitle: string;
-  step?: { current: number; total: number };
   children: ReactNode;
 }) {
   const goBack = () => {
@@ -48,9 +47,12 @@ export function AuthShell({
           >
             <Ionicons name="arrow-back" size={20} color={c.ink} />
           </Pressable>
-          <Text style={styles.brand}>
-            fayrly<Text style={styles.brandDot}>.</Text>
-          </Text>
+          <Image
+            source={require('../../assets/images/logo-ink.png')}
+            style={styles.brand}
+            contentFit="contain"
+            accessibilityLabel="Fayrly"
+          />
         </View>
 
         <ScrollView
@@ -58,20 +60,6 @@ export function AuthShell({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {step ? (
-            <View style={styles.steps}>
-              {Array.from({ length: step.total }, (_, index) => (
-                <View
-                  key={index}
-                  style={[styles.stepBar, index < step.current && styles.stepBarActive]}
-                />
-              ))}
-              <Text style={styles.stepText}>
-                Langkah {step.current} dari {step.total}
-              </Text>
-            </View>
-          ) : null}
-
           <Text style={styles.title} accessibilityRole="header">
             {title}
           </Text>
@@ -106,39 +94,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   brand: {
-    fontFamily: f.bold,
-    fontSize: 18,
-    letterSpacing: -0.5,
-    color: c.ink,
-  },
-  brandDot: {
-    color: c.mint700,
+    width: 60,
+    height: 22,
   },
   content: {
     paddingHorizontal: 20,
     paddingTop: 26,
     paddingBottom: 32,
-  },
-  steps: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 18,
-  },
-  stepBar: {
-    width: 22,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: c.mint100,
-  },
-  stepBarActive: {
-    backgroundColor: c.mint700,
-  },
-  stepText: {
-    fontFamily: f.medium,
-    fontSize: 9,
-    color: c.soft,
-    marginLeft: 6,
   },
   title: {
     fontFamily: f.bold,

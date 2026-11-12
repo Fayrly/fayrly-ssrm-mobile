@@ -433,7 +433,7 @@ export function Sheet({
         <Pressable style={styles.sheetBackdrop} onPress={onClose} accessibilityLabel="Tutup panel" />
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
           <View style={styles.sheetHandle} />
-          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         </View>

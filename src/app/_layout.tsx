@@ -99,6 +99,7 @@ function RootGate({ fontsLoaded }: { fontsLoaded: boolean }) {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="events/[slug]/index" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="events/[slug]/tiket" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="events/[slug]/checkout" options={{ animation: 'slide_from_right' }} />
           </Stack.Protected>
         </Stack>
       </AppVisibleContext.Provider>

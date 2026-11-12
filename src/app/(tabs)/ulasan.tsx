@@ -74,7 +74,6 @@ export default function ReviewsScreen() {
   return (
     <Screen>
       <PageHeader
-        kicker="Ulasan"
         heading="Cerita peserta"
         subtitle="Catatan asli dari orang yang sudah hadir di event Fayrly."
       />

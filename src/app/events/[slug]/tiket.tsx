@@ -7,144 +7,27 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Screen, Sheet, Skeleton, StateBlock } from '@/components/ui';
-import { EVENT_TYPE_LABEL, getEvent, type Event } from '@/lib/api';
+import { Button, Chip, Screen, Skeleton, StateBlock } from '@/components/ui';
+import { getEvent } from '@/lib/api';
+import { buildTiers, MAX_TICKETS, SECTIONS, type TicketTier } from '@/lib/tickets';
 import { useAuth } from '@/lib/auth';
-import { formatCompactPrice, formatMoney, formatTimeRange } from '@/lib/format';
+import { formatCompactPrice, formatMoney } from '@/lib/format';
 import { useQuery } from '@/lib/use-query';
 import { c, f, hairline, radius } from '@/theme';
 
-const MAX_TICKETS = 4;
-const OCCUPIED_RATIO = 0.28;
-const SEAT_ROWS = 3;
-const SEATS_PER_ROW = 8;
-const SECTIONS = ['A', 'B', 'C'];
-
-interface TicketTier {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  seats: boolean;
-  perks: string[];
-}
-
-interface Seat {
-  id: string;
-  occupied: boolean;
-}
-
-interface Order {
-  code: string;
-  tierName: string;
-  quantity: number;
-  seats: string[];
-  total: number;
-  currency: string;
-}
-
-function hashRatio(value: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  hash ^= hash >>> 16;
-  hash = Math.imul(hash, 0x85ebca6b);
-  hash ^= hash >>> 13;
-  hash = Math.imul(hash, 0xc2b2ae35);
-  hash ^= hash >>> 16;
-  return (hash >>> 0) / 4294967295;
-}
-
-function buildTiers(event: Event): TicketTier[] {
-  if ((event.price_max ?? 0) <= 0) {
-    return [
-      {
-        id: 'gratis',
-        name: 'Registrasi gratis',
-        description: 'Konfirmasi kehadiran tanpa biaya tiket.',
-        price: 0,
-        seats: false,
-        perks: ['Akses ke area acara', 'Konfirmasi kehadiran digital'],
-      },
-    ];
-  }
-  if ((event.price_min ?? 0) === (event.price_max ?? 0)) {
-    return [
-      {
-        id: 'reguler',
-        name: 'Tiket reguler',
-        description: 'Satu harga untuk seluruh area acara.',
-        price: event.price_min,
-        seats: false,
-        perks: ['Akses area acara', 'E-tiket dengan kode pemesanan'],
-      },
-    ];
-  }
-  if (event.type !== 'concert') {
-    return [
-      {
-        id: 'reguler',
-        name: 'Tiket reguler',
-        description: 'Akses area acara dengan harga dasar.',
-        price: event.price_min,
-        seats: false,
-        perks: ['Akses area acara', 'E-tiket dengan kode pemesanan'],
-      },
-      {
-        id: 'utama',
-        name: 'Tiket utama',
-        description: 'Akses area acara dengan harga dukungan lebih tinggi.',
-        price: event.price_max,
-        seats: false,
-        perks: ['Akses area acara', 'E-tiket dengan kode pemesanan'],
-      },
-    ];
-  }
-  return [
-    {
-      id: 'cat-1',
-      name: 'CAT 1',
-      description: 'Area paling dekat dengan panggung.',
-      price: event.price_max,
-      seats: true,
-      perks: ['Baris depan area panggung', 'Kursi bernomor', 'E-tiket dengan kode pemesanan'],
-    },
-    {
-      id: 'cat-2',
-      name: 'CAT 2',
-      description: 'Area tengah dengan pandangan luas.',
-      price: event.price_min,
-      seats: true,
-      perks: ['Area tengah tribun', 'Kursi bernomor', 'E-tiket dengan kode pemesanan'],
-    },
-  ];
-}
-
-function buildSeats(eventId: string, tier: TicketTier, section: string): Seat[] {
-  const zone = tier.id === 'cat-1' ? 1 : 2;
-  const seats: Seat[] = [];
-  for (let row = 0; row < SEAT_ROWS; row += 1) {
-    for (let index = 0; index < SEATS_PER_ROW; index += 1) {
-      const id = `${zone}${section}-${row + 1}${String(index + 1).padStart(2, '0')}`;
-      seats.push({
-        id,
-        occupied:
-          hashRatio(`${eventId}:${tier.id}:${section}:${row}:${index}`) < OCCUPIED_RATIO,
-      });
-    }
-  }
-  return seats;
-}
+const BLOCK_WIDTH = 42;
+const BLOCK_HEIGHT = 28;
+const MAP_HEIGHT = 244;
 
 export default function TicketScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const key = typeof slug === 'string' ? slug : '';
   const { isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
 
   const eventQuery = useQuery(() => getEvent(key), [key], key.length > 0);
   const event = eventQuery.data;
@@ -153,37 +36,24 @@ export default function TicketScreen() {
   const [tierId, setTierId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [section, setSection] = useState('A');
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-  const [seatNotice, setSeatNotice] = useState<string | null>(null);
-  const [order, setOrder] = useState<Order | null>(null);
 
   const tier = tiers.find((item) => item.id === tierId) ?? tiers[0] ?? null;
-
-  const seats = useMemo(
-    () => (event && tier?.seats ? buildSeats(event.id, tier, section) : []),
-    [event, tier, section],
-  );
 
   const canBuy = event?.status === 'published' || event?.status === 'ongoing';
   const maxQuantity = event?.capacity && event.capacity > 0
     ? Math.min(MAX_TICKETS, event.capacity)
     : MAX_TICKETS;
   const total = (tier?.price ?? 0) * quantity;
-  const seatsIncomplete = tier?.seats === true && selectedSeats.length !== quantity;
-  const checkoutDisabled = !event || !canBuy || seatsIncomplete;
+  const checkoutDisabled = !event || !canBuy;
+  const mapWidth = Math.min(Math.max(width - 40, 272), 460);
 
-  const remainingSeats = quantity - selectedSeats.length;
   const checkoutLabel = !canBuy
     ? 'Tiket belum tersedia'
-    : seatsIncomplete
-      ? selectedSeats.length === 0
-        ? 'Pilih kursi dulu'
-        : `Pilih ${remainingSeats} kursi lagi`
-      : !isAuthenticated
-        ? 'Masuk untuk melanjutkan'
-        : tier?.price === 0
-          ? 'Konfirmasi kehadiran'
-          : 'Lanjut ke pembayaran';
+    : !isAuthenticated
+      ? 'Masuk untuk melanjutkan'
+      : tier?.price === 0
+        ? 'Lanjut ke checkout'
+        : 'Lanjut ke pembayaran';
 
   const chooseTier = (next: TicketTier) => {
     if (next.id === tier?.id) {
@@ -191,58 +61,17 @@ export default function TicketScreen() {
     }
     setTierId(next.id);
     setQuantity(1);
-    setSelectedSeats([]);
-    setSeatNotice(null);
-    setSection('A');
   };
 
   const adjustQuantity = (delta: number) => {
-    const next = Math.min(maxQuantity, Math.max(1, quantity + delta));
-    if (next === quantity) {
-      return;
-    }
-    setQuantity(next);
-    setSelectedSeats((current) => current.slice(0, next));
-    setSeatNotice(null);
+    setQuantity((current) => Math.min(maxQuantity, Math.max(1, current + delta)));
   };
 
-  const toggleSeat = (seat: Seat) => {
-    if (seat.occupied) {
-      return;
-    }
-    setSeatNotice(null);
-    setSelectedSeats((current) => {
-      if (current.includes(seat.id)) {
-        return current.filter((id) => id !== seat.id);
-      }
-      if (current.length >= quantity) {
-        setSeatNotice(`Kamu memilih ${quantity} tiket. Lepas satu kursi sebelum menambah.`);
-        return current;
-      }
-      return [...current, seat.id];
+  const cycleSection = (delta: number) => {
+    setSection((current) => {
+      const index = Math.max(0, SECTIONS.indexOf(current));
+      return SECTIONS[(index + delta + SECTIONS.length) % SECTIONS.length];
     });
-  };
-
-  const pickBestSeats = () => {
-    if (!tier?.seats) {
-      return;
-    }
-    const pool: string[] = [];
-    for (const zone of SECTIONS) {
-      for (const seat of buildSeats(event?.id ?? '', tier, zone)) {
-        if (!seat.occupied && !pool.includes(seat.id)) {
-          pool.push(seat.id);
-        }
-      }
-    }
-    const picked = pool.slice(0, quantity);
-    setSelectedSeats(picked);
-    setSeatNotice(
-      picked.length < quantity ? 'Kursi di area ini tidak cukup untuk jumlah tiket.' : null,
-    );
-    if (picked.length > 0) {
-      setSection(picked[0].slice(1, 2));
-    }
   };
 
   const checkout = () => {
@@ -256,31 +85,21 @@ export default function TicketScreen() {
       });
       return;
     }
-    if (tier.seats && seatsIncomplete) {
-      setSeatNotice('Pilih kursi sesuai jumlah tiket sebelum melanjutkan.');
-      return;
-    }
-    setOrder({
-      code: `FRY-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      tierName: tier.name,
-      quantity,
-      seats: [...selectedSeats],
-      total: tier.price * quantity,
-      currency: event.currency || 'IDR',
+    router.push({
+      pathname: '/events/[slug]/checkout',
+      params: { slug: event.slug, tier: tier.id, area: section, quantity: String(quantity) },
     });
   };
 
   if (eventQuery.loading) {
     return (
       <Screen>
-        <View style={styles.topBar}>
-          <BackButton />
-        </View>
+        <Header title="Pilih Tiket" />
         <View style={styles.loading}>
-          <Skeleton height={90} radius={radius.lg} />
-          <Skeleton height={110} radius={radius.lg} style={{ marginTop: 16 }} />
-          <Skeleton height={48} radius={radius.md} style={{ marginTop: 16 }} />
-          <Skeleton height={200} radius={radius.lg} style={{ marginTop: 16 }} />
+          <Skeleton height={20} width="55%" />
+          <Skeleton height={MAP_HEIGHT} radius={40} style={{ marginTop: 18 }} />
+          <Skeleton height={180} radius={radius.xl} style={{ marginTop: 18 }} />
+          <Skeleton height={52} radius={radius.pill} style={{ marginTop: 18 }} />
         </View>
       </Screen>
     );
@@ -289,9 +108,7 @@ export default function TicketScreen() {
   if (eventQuery.errorStatus === 404) {
     return (
       <Screen>
-        <View style={styles.topBar}>
-          <BackButton />
-        </View>
+        <Header title="Pilih Tiket" />
         <StateBlock
           title="Event tidak ditemukan"
           body="Tautan mungkin sudah berubah atau event telah dihapus."
@@ -306,9 +123,7 @@ export default function TicketScreen() {
   if (!event) {
     return (
       <Screen>
-        <View style={styles.topBar}>
-          <BackButton />
-        </View>
+        <Header title="Pilih Tiket" />
         <StateBlock
           title="Tiket belum bisa dimuat"
           body={eventQuery.error ?? 'Terjadi kesalahan saat memuat data.'}
@@ -320,202 +135,153 @@ export default function TicketScreen() {
     );
   }
 
+  const venueName = event.venue_name || 'Lokasi menyusul';
+  const venueCity = event.city || '';
+
   return (
     <Screen>
-      <View style={styles.topBar}>
-        <BackButton />
-        <View style={styles.topBarText}>
-          <Text style={styles.topBarKicker}>Pilih tiket</Text>
-          <Text style={styles.topBarTitle} numberOfLines={1}>
-            {event.title}
-          </Text>
-        </View>
-      </View>
+      <Header title="Pilih Tiket" />
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.summary}>
-          <Text style={styles.summaryType}>
-            {EVENT_TYPE_LABEL[event.type] ?? 'Event'} ·{' '}
-            {formatTimeRange(event.starts_at, event.ends_at)}
-          </Text>
-          <Text style={styles.summaryVenue} numberOfLines={2}>
-            {[event.venue_name, event.city].filter(Boolean).join(', ') || 'Lokasi menyusul'}
-          </Text>
-          {!canBuy ? (
-            <Text style={styles.summaryWarn}>
-              Event ini tidak sedang menjual tiket. Pemesanan dinonaktifkan.
+        <View style={styles.venueRow}>
+          <View style={styles.venueIcon}>
+            <Ionicons name="location" size={16} color={c.mint700} />
+          </View>
+          <View style={styles.venueText}>
+            <Text style={styles.venueName} numberOfLines={1}>
+              {venueName}
             </Text>
-          ) : null}
+            {venueCity ? (
+              <Text style={styles.venueCity} numberOfLines={1}>
+                {venueCity}
+              </Text>
+            ) : null}
+          </View>
         </View>
 
-        <Text style={styles.groupLabel}>Jenis tiket</Text>
-        <View style={styles.tiers}>
-          {tiers.map((item) => {
-            const active = item.id === tier?.id;
-            return (
-              <Pressable
+        {!canBuy ? (
+          <Text style={styles.venueWarn}>
+            Event ini tidak sedang menjual tiket. Pemesanan dinonaktifkan.
+          </Text>
+        ) : null}
+
+        {tiers.length > 1 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tierRow}
+          >
+            {tiers.map((item) => (
+              <Chip
                 key={item.id}
+                label={item.name}
+                active={item.id === tier?.id}
                 onPress={() => chooseTier(item)}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: active }}
+              />
+            ))}
+          </ScrollView>
+        ) : null}
+
+        <View style={styles.mapWrap}>
+          <StadiumMap width={mapWidth} active={section} onSelect={setSection} />
+          <Text style={styles.mapHint}>Ketuk area di peta untuk melihat detail.</Text>
+        </View>
+
+        <View style={styles.areaCard}>
+          <View style={styles.areaHead}>
+            <Pressable
+              onPress={() => cycleSection(-1)}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Area sebelumnya"
+              style={({ pressed }) => [styles.areaArrow, pressed && styles.pressed]}
+            >
+              <Ionicons name="chevron-back" size={18} color={c.ink} />
+            </Pressable>
+            <View style={styles.areaTitleWrap}>
+              <Text style={styles.areaName}>Area {section}</Text>
+              <Text style={styles.areaTier} numberOfLines={1}>
+                {tier?.name ?? 'Tiket'}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => cycleSection(1)}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Area berikutnya"
+              style={({ pressed }) => [styles.areaArrow, pressed && styles.pressed]}
+            >
+              <Ionicons name="chevron-forward" size={18} color={c.ink} />
+            </Pressable>
+          </View>
+
+          <View style={styles.areaBody}>
+            <Text style={styles.areaLabel}>Detail area</Text>
+            <Text style={styles.areaDescription}>
+              {tier?.description ?? 'Detail area mengikuti jenis tiket yang dipilih.'}
+            </Text>
+            {tier?.perks.map((perk) => (
+              <View key={perk} style={styles.perk}>
+                <Ionicons name="checkmark" size={12} color={c.mint700} />
+                <Text style={styles.perkText}>{perk}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.areaPriceRow}>
+            <View style={styles.areaPriceText}>
+              <Text style={styles.priceLabel}>Harga</Text>
+              <Text style={styles.priceValue}>
+                {!tier || tier.price === 0
+                  ? 'Gratis'
+                  : formatCompactPrice(tier.price, event.currency)}
+              </Text>
+            </View>
+            <View style={styles.stepper}>
+              <Pressable
+                onPress={() => adjustQuantity(-1)}
+                disabled={!canBuy || quantity <= 1}
+                accessibilityRole="button"
+                accessibilityLabel="Kurangi jumlah tiket"
                 style={({ pressed }) => [
-                  styles.tier,
-                  active && styles.tierActive,
+                  styles.stepButton,
+                  (!canBuy || quantity <= 1) && styles.stepDisabled,
                   pressed && styles.pressed,
                 ]}
               >
-                <View style={styles.tierHead}>
-                  <View style={[styles.radio, active && styles.radioActive]}>
-                    {active ? <View style={styles.radioDot} /> : null}
-                  </View>
-                  <View style={styles.tierText}>
-                    <Text style={styles.tierName}>{item.name}</Text>
-                    <Text style={styles.tierDescription}>{item.description}</Text>
-                  </View>
-                  <Text style={styles.tierPrice}>
-                    {item.price === 0 ? 'Gratis' : formatCompactPrice(item.price, event.currency)}
-                  </Text>
-                </View>
-                <View style={styles.perks}>
-                  {item.perks.map((perk) => (
-                    <View key={perk} style={styles.perk}>
-                      <Ionicons name="checkmark" size={12} color={c.mint700} />
-                      <Text style={styles.perkText}>{perk}</Text>
-                    </View>
-                  ))}
-                </View>
+                <Ionicons name="remove" size={18} color={!canBuy || quantity <= 1 ? c.soft : c.ink} />
               </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.quantityRow}>
-          <View>
-            <Text style={styles.quantityLabel}>Jumlah tiket</Text>
-            <Text style={styles.quantityHint}>Maksimal {maxQuantity} tiket per pesanan</Text>
-          </View>
-          <View style={styles.stepper}>
-            <Pressable
-              onPress={() => adjustQuantity(-1)}
-              disabled={quantity <= 1}
-              accessibilityRole="button"
-              accessibilityLabel="Kurangi jumlah tiket"
-              style={({ pressed }) => [
-                styles.stepButton,
-                quantity <= 1 && styles.stepDisabled,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Ionicons name="remove" size={18} color={quantity <= 1 ? c.soft : c.ink} />
-            </Pressable>
-            <Text style={styles.stepValue}>{quantity}</Text>
-            <Pressable
-              onPress={() => adjustQuantity(1)}
-              disabled={quantity >= maxQuantity}
-              accessibilityRole="button"
-              accessibilityLabel="Tambah jumlah tiket"
-              style={({ pressed }) => [
-                styles.stepButton,
-                quantity >= maxQuantity && styles.stepDisabled,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Ionicons name="add" size={18} color={quantity >= maxQuantity ? c.soft : c.ink} />
-            </Pressable>
+              <Text style={styles.stepValue}>{quantity}</Text>
+              <Pressable
+                onPress={() => adjustQuantity(1)}
+                disabled={!canBuy || quantity >= maxQuantity}
+                accessibilityRole="button"
+                accessibilityLabel="Tambah jumlah tiket"
+                style={({ pressed }) => [
+                  styles.stepButton,
+                  (!canBuy || quantity >= maxQuantity) && styles.stepDisabled,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Ionicons
+                  name="add"
+                  size={18}
+                  color={!canBuy || quantity >= maxQuantity ? c.soft : c.ink}
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
 
-        {tier?.seats ? (
-          <>
-            <View style={styles.seatHead}>
-              <Text style={styles.groupLabel}>Pilih kursi</Text>
-              <Pressable onPress={pickBestSeats} hitSlop={8} accessibilityRole="button">
-                <Text style={styles.autoPick}>Pilih otomatis</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.sectionRow}>
-              {SECTIONS.map((zone) => (
-                <Pressable
-                  key={zone}
-                  onPress={() => setSection(zone)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: section === zone }}
-                  style={({ pressed }) => [
-                    styles.sectionChip,
-                    section === zone && styles.sectionChipActive,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.sectionChipText,
-                      section === zone && styles.sectionChipTextActive,
-                    ]}
-                  >
-                    Zona {tier.id === 'cat-1' ? '1' : '2'}
-                    {zone}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.stageWrap}>
-              <View style={styles.stage}>
-                <Text style={styles.stageText}>PANGGUNG</Text>
-              </View>
-            </View>
-
-            <View style={styles.seatGrid}>
-              {seats.map((seat) => {
-                const selected = selectedSeats.includes(seat.id);
-                return (
-                  <Pressable
-                    key={seat.id}
-                    onPress={() => toggleSeat(seat)}
-                    disabled={seat.occupied}
-                    hitSlop={3}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Kursi ${seat.id}${seat.occupied ? ' terisi' : selected ? ' dipilih' : ' tersedia'}`}
-                    accessibilityState={{ selected, disabled: seat.occupied }}
-                    style={({ pressed }) => [
-                      styles.seat,
-                      seat.occupied && styles.seatOccupied,
-                      selected && styles.seatSelected,
-                      pressed && !seat.occupied && styles.pressed,
-                    ]}
-                  >
-                    {selected ? <Ionicons name="checkmark" size={13} color={c.paper} /> : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={styles.legend}>
-              <Legend color={c.paper} border label="Tersedia" />
-              <Legend color={c.mint50} label="Terisi" />
-              <Legend color={c.mint700} label="Dipilih" />
-            </View>
-
-            <View style={styles.seatStrip}>
-              <Text style={styles.seatStripLabel}>Kursi kamu</Text>
-              <Text style={styles.seatStripValue}>
-                {selectedSeats.length > 0 ? selectedSeats.join(', ') : 'Belum dipilih'}
-              </Text>
-            </View>
-
-            {seatNotice ? <Text style={styles.seatNotice}>{seatNotice}</Text> : null}
-          </>
-        ) : null}
+        <Text style={styles.limit}>Maksimal {maxQuantity} tiket per pesanan.</Text>
 
         <View style={styles.note}>
           <Ionicons name="information-circle-outline" size={15} color={c.muted} />
           <Text style={styles.noteText}>
-            Pemesanan di aplikasi ini masih berupa simulasi. Backend Fayrly belum memproses
-            pembayaran atau menerbitkan tiket sungguhan.
+            Checkout masih berupa pratinjau. Pembayaran dan penerbitan tiket belum tersedia.
           </Text>
         </View>
       </ScrollView>
@@ -533,72 +299,81 @@ export default function TicketScreen() {
         />
       </View>
 
-      <Sheet visible={order !== null} onClose={() => setOrder(null)}>
-        {order ? (
-          <View style={styles.orderSheet}>
-            <View style={styles.orderIcon}>
-              <Ionicons name="checkmark" size={24} color={c.mint700} />
-            </View>
-            <Text style={styles.orderTitle}>Pesanan disimulasikan</Text>
-            <Text style={styles.orderNote}>Belum ada transaksi nyata yang diproses.</Text>
-
-            <View style={styles.orderCode}>
-              <Text style={styles.orderCodeLabel}>Kode pemesanan</Text>
-              <Text style={styles.orderCodeValue}>{order.code}</Text>
-            </View>
-
-            <View style={styles.orderRows}>
-              <OrderRow label="Event" value={event.title} />
-              <OrderRow label="Tiket" value={order.tierName} />
-              <OrderRow label="Jumlah" value={`${order.quantity} tiket`} />
-              {order.seats.length > 0 ? (
-                <OrderRow label="Kursi" value={order.seats.join(', ')} />
-              ) : null}
-              <OrderRow label="Total" value={formatMoney(order.total, order.currency)} />
-            </View>
-
-            <Button
-              label="Mengerti"
-              onPress={() => setOrder(null)}
-              style={styles.orderButton}
-            />
-          </View>
-        ) : null}
-      </Sheet>
     </Screen>
   );
 }
 
-function Legend({
-  color,
-  border,
-  label,
+function StadiumMap({
+  width,
+  active,
+  onSelect,
 }: {
-  color: string;
-  border?: boolean;
-  label: string;
+  width: number;
+  active: string;
+  onSelect: (zone: string) => void;
 }) {
+  const centerX = width / 2;
+  const centerY = MAP_HEIGHT / 2 + 8;
+  const radiusX = width / 2 - 26;
+  const radiusY = MAP_HEIGHT / 2 - 42;
+
+  const blocks = Array.from({ length: 12 }, (_, index) => {
+    const angle = ((-62 + index * 27) * Math.PI) / 180;
+    return {
+      index,
+      zone: SECTIONS[Math.floor(index / 4)],
+      left: centerX + radiusX * Math.cos(angle) - BLOCK_WIDTH / 2,
+      top: centerY + radiusY * Math.sin(angle) - BLOCK_HEIGHT / 2,
+    };
+  });
+
   return (
-    <View style={styles.legendItem}>
-      <View
-        style={[
-          styles.legendSwatch,
-          { backgroundColor: color },
-          border && styles.legendBorder,
-        ]}
-      />
-      <Text style={styles.legendText}>{label}</Text>
+    <View style={[styles.map, { width, height: MAP_HEIGHT }]}>
+      <View style={styles.stage}>
+        <Text style={styles.stageText}>PANGGUNG</Text>
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.fieldText}>ARENA</Text>
+      </View>
+
+      {blocks.map((block) => {
+        const selected = block.zone === active;
+        return (
+          <Pressable
+            key={block.index}
+            onPress={() => onSelect(block.zone)}
+            hitSlop={4}
+            accessibilityRole="button"
+            accessibilityLabel={`Zona ${block.zone}`}
+            accessibilityState={{ selected }}
+            style={({ pressed }) => [
+              styles.block,
+              { left: block.left, top: block.top },
+              selected && styles.blockActive,
+              pressed && styles.pressed,
+            ]}
+          >
+            <View style={styles.blockDots}>
+              {[0, 1, 2, 3, 4, 5].map((dot) => (
+                <View key={dot} style={[styles.blockDot, selected && styles.blockDotActive]} />
+              ))}
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
-function OrderRow({ label, value }: { label: string; value: string }) {
+function Header({ title }: { title: string }) {
   return (
-    <View style={styles.orderRow}>
-      <Text style={styles.orderRowLabel}>{label}</Text>
-      <Text style={styles.orderRowValue} numberOfLines={2}>
-        {value}
+    <View style={styles.header}>
+      <BackButton />
+      <Text style={styles.headerTitle} accessibilityRole="header">
+        {title}
       </Text>
+      <View style={styles.headerSpacer} />
     </View>
   );
 }
@@ -618,30 +393,24 @@ function BackButton() {
 }
 
 const styles = StyleSheet.create({
-  topBar: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 12,
+    paddingBottom: 10,
   },
-  topBarText: {
+  headerTitle: {
     flex: 1,
-    gap: 1,
-  },
-  topBarKicker: {
-    fontFamily: f.medium,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: c.mint700,
-  },
-  topBarTitle: {
+    textAlign: 'center',
     fontFamily: f.semibold,
-    fontSize: 15,
-    letterSpacing: -0.2,
+    fontSize: 16,
+    letterSpacing: -0.3,
     color: c.ink,
+  },
+  headerSpacer: {
+    width: 42,
   },
   backButton: {
     width: 42,
@@ -655,107 +424,196 @@ const styles = StyleSheet.create({
   },
   loading: {
     paddingHorizontal: 20,
+    paddingTop: 6,
   },
-  summary: {
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    gap: 4,
+  venueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 4,
   },
-  summaryType: {
-    fontFamily: f.medium,
-    fontSize: 10,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: c.mint700,
+  venueIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: c.mint50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  summaryVenue: {
-    fontFamily: f.medium,
+  venueText: {
+    flex: 1,
+    gap: 1,
+  },
+  venueName: {
+    fontFamily: f.semibold,
     fontSize: 13,
-    lineHeight: 19,
+    letterSpacing: -0.2,
     color: c.ink,
   },
-  summaryWarn: {
+  venueCity: {
+    fontFamily: f.regular,
+    fontSize: 11,
+    color: c.muted,
+  },
+  venueWarn: {
     fontFamily: f.regular,
     fontSize: 11,
     lineHeight: 17,
     color: c.crimson,
-    marginTop: 4,
-  },
-  groupLabel: {
-    fontFamily: f.semibold,
-    fontSize: 13,
-    color: c.ink,
-    marginHorizontal: 20,
-    marginTop: 22,
-    marginBottom: 10,
-  },
-  tiers: {
     paddingHorizontal: 20,
-    gap: 10,
+    paddingTop: 10,
   },
-  tier: {
-    borderRadius: radius.lg,
+  tierRow: {
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  mapWrap: {
+    alignItems: 'center',
+    paddingTop: 16,
+  },
+  map: {
+    borderRadius: 999,
+    backgroundColor: c.wash,
+    borderWidth: 1,
+    borderColor: c.mint100,
+  },
+  stage: {
+    position: 'absolute',
+    top: 16,
+    alignSelf: 'center',
+    width: 104,
+    height: 32,
+    borderRadius: radius.pill,
+    backgroundColor: c.mint700,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stageText: {
+    fontFamily: f.semibold,
+    fontSize: 8,
+    letterSpacing: 2.4,
+    color: c.paper,
+  },
+  field: {
+    position: 'absolute',
+    top: MAP_HEIGHT / 2 + 8 - 38,
+    alignSelf: 'center',
+    width: 116,
+    height: 76,
+    borderRadius: radius.pill,
+    backgroundColor: c.paper,
+    borderWidth: 1,
+    borderColor: c.mint100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fieldText: {
+    fontFamily: f.semibold,
+    fontSize: 8,
+    letterSpacing: 2,
+    color: c.soft,
+  },
+  block: {
+    position: 'absolute',
+    width: BLOCK_WIDTH,
+    height: BLOCK_HEIGHT,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.mint200,
+    backgroundColor: c.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blockActive: {
+    backgroundColor: c.mint700,
+    borderColor: c.mint700,
+  },
+  blockDots: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: 18,
+    gap: 2,
+  },
+  blockDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: c.mint300,
+  },
+  blockDotActive: {
+    backgroundColor: c.mint200,
+  },
+  mapHint: {
+    fontFamily: f.regular,
+    fontSize: 10,
+    color: c.soft,
+    marginTop: 10,
+  },
+  areaCard: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.paper,
-    padding: 14,
-    gap: 10,
+    overflow: 'hidden',
   },
-  tierActive: {
-    borderColor: c.mint600,
-    backgroundColor: c.wash,
-  },
-  tierHead: {
+  areaHead: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 12,
+    borderBottomWidth: hairline,
+    borderBottomColor: c.line,
   },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: c.mint300,
+  areaArrow: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.canvas,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 1,
   },
-  radioActive: {
-    borderColor: c.mint700,
-  },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: c.mint700,
-  },
-  tierText: {
+  areaTitleWrap: {
     flex: 1,
-    gap: 2,
+    alignItems: 'center',
+    gap: 1,
   },
-  tierName: {
+  areaName: {
     fontFamily: f.semibold,
-    fontSize: 14,
+    fontSize: 15,
+    letterSpacing: -0.3,
     color: c.ink,
   },
-  tierDescription: {
+  areaTier: {
     fontFamily: f.regular,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 10,
     color: c.muted,
   },
-  tierPrice: {
-    fontFamily: f.semibold,
-    fontSize: 13,
-    color: c.ink,
+  areaBody: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    gap: 6,
   },
-  perks: {
-    gap: 4,
-    paddingLeft: 30,
+  areaLabel: {
+    fontFamily: f.semibold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: c.mint700,
+  },
+  areaDescription: {
+    fontFamily: f.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: c.muted,
+    marginBottom: 2,
   },
   perk: {
     flexDirection: 'row',
@@ -764,29 +622,34 @@ const styles = StyleSheet.create({
   },
   perkText: {
     fontFamily: f.regular,
-    fontSize: 10,
+    fontSize: 11,
     color: c.muted,
   },
-  quantityRow: {
+  areaPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginTop: 20,
-    paddingTop: 16,
+    gap: 12,
+    marginTop: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: hairline,
     borderTopColor: c.line,
+    backgroundColor: c.canvas,
   },
-  quantityLabel: {
-    fontFamily: f.semibold,
-    fontSize: 13,
-    color: c.ink,
+  areaPriceText: {
+    gap: 1,
   },
-  quantityHint: {
+  priceLabel: {
     fontFamily: f.regular,
     fontSize: 10,
     color: c.soft,
-    marginTop: 2,
+  },
+  priceValue: {
+    fontFamily: f.bold,
+    fontSize: 16,
+    letterSpacing: -0.4,
+    color: c.ink,
   },
   stepper: {
     flexDirection: 'row',
@@ -798,156 +661,25 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   stepButton: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
   stepValue: {
-    minWidth: 26,
+    minWidth: 24,
     textAlign: 'center',
     fontFamily: f.semibold,
     fontSize: 14,
     color: c.ink,
   },
-  seatHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingRight: 20,
-  },
-  autoPick: {
-    fontFamily: f.semibold,
-    fontSize: 11,
-    color: c.mint700,
-    marginTop: 12,
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
-  },
-  sectionChip: {
-    flex: 1,
-    height: 38,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionChipActive: {
-    backgroundColor: c.mint700,
-    borderColor: c.mint700,
-  },
-  sectionChipText: {
-    fontFamily: f.medium,
-    fontSize: 11,
-    color: c.muted,
-  },
-  sectionChipTextActive: {
-    color: c.paper,
-  },
-  stageWrap: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  stage: {
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: c.mint50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stageText: {
-    fontFamily: f.semibold,
-    fontSize: 8,
-    letterSpacing: 3,
-    color: c.mint700,
-  },
-  seatGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    justifyContent: 'center',
-  },
-  seat: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: c.mint200,
-    backgroundColor: c.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  seatOccupied: {
-    backgroundColor: c.mint50,
-    borderColor: c.mint50,
-  },
-  seatSelected: {
-    backgroundColor: c.mint700,
-    borderColor: c.mint700,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    paddingTop: 14,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  legendSwatch: {
-    width: 12,
-    height: 12,
-    borderRadius: 4,
-  },
-  legendBorder: {
-    borderWidth: 1,
-    borderColor: c.mint200,
-  },
-  legendText: {
+  limit: {
     fontFamily: f.regular,
     fontSize: 10,
-    color: c.muted,
-  },
-  seatStrip: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 12,
-    borderRadius: radius.sm,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-    gap: 3,
-  },
-  seatStripLabel: {
-    fontFamily: f.medium,
-    fontSize: 10,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
     color: c.soft,
-  },
-  seatStripValue: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    lineHeight: 18,
-    color: c.ink,
-  },
-  seatNotice: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    lineHeight: 17,
-    color: c.crimson,
     paddingHorizontal: 20,
     paddingTop: 10,
   },
@@ -956,7 +688,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 7,
     marginHorizontal: 20,
-    marginTop: 22,
+    marginTop: 20,
     paddingTop: 14,
     borderTopWidth: hairline,
     borderTopColor: c.line,
@@ -999,76 +731,8 @@ const styles = StyleSheet.create({
   },
   footerButton: {
     minWidth: 168,
-  },
-  orderSheet: {
-    gap: 8,
-    paddingBottom: 8,
-  },
-  orderIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: c.mint50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orderTitle: {
-    fontFamily: f.semibold,
-    fontSize: 19,
-    letterSpacing: -0.3,
-    color: c.ink,
-  },
-  orderNote: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.muted,
-  },
-  orderCode: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: radius.sm,
-    backgroundColor: c.wash,
-    gap: 2,
-  },
-  orderCodeLabel: {
-    fontFamily: f.medium,
-    fontSize: 9,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: c.soft,
-  },
-  orderCodeValue: {
-    fontFamily: f.bold,
-    fontSize: 16,
-    letterSpacing: 1,
-    color: c.mint700,
-  },
-  orderRows: {
-    marginTop: 8,
-  },
-  orderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingVertical: 8,
-    borderBottomWidth: hairline,
-    borderBottomColor: c.line,
-  },
-  orderRowLabel: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    color: c.soft,
-  },
-  orderRowValue: {
-    flex: 1,
-    textAlign: 'right',
-    fontFamily: f.medium,
-    fontSize: 11,
-    color: c.ink,
-  },
-  orderButton: {
-    marginTop: 14,
+    borderRadius: radius.pill,
+    paddingHorizontal: 24,
   },
   pressed: {
     opacity: 0.7,

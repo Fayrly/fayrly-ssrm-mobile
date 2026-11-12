@@ -327,9 +327,12 @@ export default function HomeScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.logo} accessibilityRole="header" accessibilityLabel="Fayrly">
-          fayrly<Text style={styles.logoDot}>.</Text>
-        </Text>
+        <Image
+          source={require('../../../assets/images/logo-ink.png')}
+          style={styles.logo}
+          contentFit="contain"
+          accessibilityLabel="Fayrly"
+        />
         <Pressable
           onPress={() => router.push(user ? '/akun' : '/masuk')}
           accessibilityRole="button"
@@ -486,8 +489,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: c.canvas,
   },
-  logo: { fontFamily: f.bold, fontSize: 30, letterSpacing: -0.8, color: c.mint700 },
-  logoDot: { color: c.crimson },
+  logo: { width: 82, height: 30 },
   userBtn: {
     width: 48,
     height: 48,
