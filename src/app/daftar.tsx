@@ -6,9 +6,11 @@ import { Button, Field, NoticeModal } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { safeNext } from '@/lib/navigation';
-import { c, f } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, dark, type Colors } from '@/theme';
 
 export default function RegisterScreen() {
+  const { styles } = useSignUpTheme();
   const { next } = useLocalSearchParams<{ next?: string }>();
   const { register } = useAuth();
 
@@ -190,30 +192,42 @@ function registerError(error: unknown): string {
   return 'Tidak dapat terhubung ke server. Periksa koneksimu.';
 }
 
-const styles = StyleSheet.create({
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 4,
-  },
-  footerText: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.muted,
-  },
-  footerLink: {
-    fontFamily: f.semibold,
-    fontSize: 12,
-    color: c.mint700,
-  },
-  legal: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    lineHeight: 16,
-    color: c.soft,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 4,
+    },
+    footerText: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      color: c.muted,
+    },
+    footerLink: {
+      fontFamily: f.semibold,
+      fontSize: 12,
+      color: c.mint700,
+    },
+    legal: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      lineHeight: 16,
+      color: c.soft,
+      textAlign: 'center',
+      marginTop: 4,
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useSignUpTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

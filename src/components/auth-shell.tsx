@@ -12,7 +12,8 @@ import {
   View,
 } from 'react-native';
 import { Screen } from '@/components/ui';
-import { c, f } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, dark, type Colors } from '@/theme';
 
 export function AuthShell({
   title,
@@ -23,6 +24,7 @@ export function AuthShell({
   subtitle: string;
   children: ReactNode;
 }) {
+  const { mode, c, styles } = useAuthShellTheme();
   const goBack = () => {
     if (router.canGoBack()) {
       router.back();
@@ -48,7 +50,7 @@ export function AuthShell({
             <Ionicons name="arrow-back" size={20} color={c.ink} />
           </Pressable>
           <Image
-            source={require('../../assets/images/logo-ink.png')}
+            source={mode === 'dark' ? require('../../assets/images/splash-logo-light.png') : require('../../assets/images/logo-ink.png')}
             style={styles.brand}
             contentFit="contain"
             accessibilityLabel="Fayrly"
@@ -72,56 +74,68 @@ export function AuthShell({
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brand: {
-    width: 60,
-    height: 22,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 26,
-    paddingBottom: 32,
-  },
-  title: {
-    fontFamily: f.bold,
-    fontSize: 30,
-    lineHeight: 35,
-    letterSpacing: -0.8,
-    color: c.ink,
-  },
-  subtitle: {
-    fontFamily: f.regular,
-    fontSize: 13,
-    lineHeight: 20,
-    color: c.muted,
-    marginTop: 8,
-    maxWidth: 360,
-  },
-  form: {
-    marginTop: 24,
-    gap: 14,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 8,
+    },
+    backButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    brand: {
+      width: 60,
+      height: 22,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 26,
+      paddingBottom: 32,
+    },
+    title: {
+      fontFamily: f.bold,
+      fontSize: 30,
+      lineHeight: 35,
+      letterSpacing: -0.8,
+      color: c.ink,
+    },
+    subtitle: {
+      fontFamily: f.regular,
+      fontSize: 13,
+      lineHeight: 20,
+      color: c.muted,
+      marginTop: 8,
+      maxWidth: 360,
+    },
+    form: {
+      marginTop: 24,
+      gap: 14,
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useAuthShellTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

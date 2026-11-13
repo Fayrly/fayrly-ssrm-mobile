@@ -1,6 +1,7 @@
 import { Avatar, Button, PageHeader, Screen, Sheet } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { c, f, hairline, radius } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, dark, f, hairline, radius, type Colors } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -16,6 +17,7 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 export default function AccountScreen() {
+  const { c, styles } = useAccountTheme();
   const { user, logout } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -146,180 +148,192 @@ export default function AccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  guestCard: {
-    marginHorizontal: 20,
-    marginTop: 8,
-    padding: 22,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  guestIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: c.mint50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  guestTitle: {
-    fontFamily: f.semibold,
-    fontSize: 18,
-    letterSpacing: -0.3,
-    color: c.ink,
-  },
-  guestBody: {
-    fontFamily: f.regular,
-    fontSize: 13,
-    lineHeight: 20,
-    color: c.muted,
-  },
-  guestButton: {
-    alignSelf: 'stretch',
-    marginTop: 4,
-  },
-  quietLink: {
-    alignSelf: 'center',
-    paddingVertical: 8,
-    marginTop: 2,
-  },
-  quietLinkText: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.mint700,
-  },
-  profile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 22,
-    borderBottomWidth: hairline,
-    borderBottomColor: c.line,
-  },
-  profileText: {
-    flex: 1,
-    gap: 3,
-  },
-  profileName: {
-    fontFamily: f.semibold,
-    fontSize: 20,
-    letterSpacing: -0.3,
-    color: c.ink,
-  },
-  profileEmail: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.muted,
-  },
-  roleTag: {
-    alignSelf: 'flex-start',
-    marginTop: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    backgroundColor: c.mint50,
-  },
-  roleTagText: {
-    fontFamily: f.semibold,
-    fontSize: 10,
-    color: c.mint700,
-  },
-  group: {
-    marginTop: 20,
-    borderTopWidth: hairline,
-    borderBottomWidth: hairline,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-  },
-  row: {
-    minHeight: 56,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  rowDivider: {
-    borderTopWidth: hairline,
-    borderTopColor: c.line,
-  },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  rowLabel: {
-    fontFamily: f.medium,
-    fontSize: 13,
-    color: c.ink,
-  },
-  rowValue: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.muted,
-  },
-  soonTag: {
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    backgroundColor: c.wash,
-  },
-  soonText: {
-    fontFamily: f.medium,
-    fontSize: 10,
-    color: c.muted,
-  },
-  groupNote: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    lineHeight: 17,
-    color: c.soft,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  actions: {
-    paddingHorizontal: 20,
-    marginTop: 26,
-  },
-  logout: {
-    borderColor: c.crimson,
-  },
-  version: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-    textAlign: 'center',
-    marginTop: 'auto',
-    paddingVertical: 18,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  sheetTitle: {
-    fontFamily: f.semibold,
-    fontSize: 19,
-    letterSpacing: -0.3,
-    color: c.ink,
-  },
-  sheetBody: {
-    fontFamily: f.regular,
-    fontSize: 13,
-    lineHeight: 20,
-    color: c.muted,
-    marginTop: 6,
-  },
-  sheetActions: {
-    gap: 8,
-    marginTop: 18,
-  },
-  sheetButton: {
-    alignSelf: 'stretch',
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    guestCard: {
+      marginHorizontal: 20,
+      marginTop: 8,
+      padding: 22,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    guestIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: c.mint50,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 4,
+    },
+    guestTitle: {
+      fontFamily: f.semibold,
+      fontSize: 18,
+      letterSpacing: -0.3,
+      color: c.ink,
+    },
+    guestBody: {
+      fontFamily: f.regular,
+      fontSize: 13,
+      lineHeight: 20,
+      color: c.muted,
+    },
+    guestButton: {
+      alignSelf: 'stretch',
+      marginTop: 4,
+    },
+    quietLink: {
+      alignSelf: 'center',
+      paddingVertical: 8,
+      marginTop: 2,
+    },
+    quietLinkText: {
+      fontFamily: f.medium,
+      fontSize: 12,
+      color: c.mint700,
+    },
+    profile: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingHorizontal: 20,
+      paddingTop: 6,
+      paddingBottom: 22,
+      borderBottomWidth: hairline,
+      borderBottomColor: c.line,
+    },
+    profileText: {
+      flex: 1,
+      gap: 3,
+    },
+    profileName: {
+      fontFamily: f.semibold,
+      fontSize: 20,
+      letterSpacing: -0.3,
+      color: c.ink,
+    },
+    profileEmail: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      color: c.muted,
+    },
+    roleTag: {
+      alignSelf: 'flex-start',
+      marginTop: 5,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: radius.pill,
+      backgroundColor: c.mint50,
+    },
+    roleTagText: {
+      fontFamily: f.semibold,
+      fontSize: 10,
+      color: c.mint700,
+    },
+    group: {
+      marginTop: 20,
+      borderTopWidth: hairline,
+      borderBottomWidth: hairline,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+    },
+    row: {
+      minHeight: 56,
+      paddingHorizontal: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    rowDivider: {
+      borderTopWidth: hairline,
+      borderTopColor: c.line,
+    },
+    rowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    rowLabel: {
+      fontFamily: f.medium,
+      fontSize: 13,
+      color: c.ink,
+    },
+    rowValue: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      color: c.muted,
+    },
+    soonTag: {
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: radius.pill,
+      backgroundColor: c.wash,
+    },
+    soonText: {
+      fontFamily: f.medium,
+      fontSize: 10,
+      color: c.muted,
+    },
+    groupNote: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      lineHeight: 17,
+      color: c.soft,
+      paddingHorizontal: 20,
+      paddingTop: 10,
+    },
+    actions: {
+      paddingHorizontal: 20,
+      marginTop: 26,
+    },
+    logout: {
+      borderColor: c.crimson,
+    },
+    version: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+      textAlign: 'center',
+      marginTop: 'auto',
+      paddingVertical: 18,
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+    sheetTitle: {
+      fontFamily: f.semibold,
+      fontSize: 19,
+      letterSpacing: -0.3,
+      color: c.ink,
+    },
+    sheetBody: {
+      fontFamily: f.regular,
+      fontSize: 13,
+      lineHeight: 20,
+      color: c.muted,
+      marginTop: 6,
+    },
+    sheetActions: {
+      gap: 8,
+      marginTop: 18,
+    },
+    sheetButton: {
+      alignSelf: 'stretch',
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useAccountTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

@@ -1,7 +1,8 @@
 import { AuthShell } from '@/components/auth-shell';
 import { Button, ErrorBanner, Field } from '@/components/ui';
 import { ApiError, requestPasswordReset, resetPassword, verifyResetCode } from '@/lib/api';
-import { c, f, radius } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, radius, dark, type Colors } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -22,6 +23,7 @@ function OtpInput({
   onChange: (digits: string[]) => void;
   disabled?: boolean;
 }) {
+  const { styles } = useResetTheme();
   const inputs = useRef<(ComponentRef<typeof TextInput> | null)[]>([]);
   const [focused, setFocused] = useState<number | null>(null);
 
@@ -89,6 +91,7 @@ function OtpInput({
 }
 
 export default function ForgotPasswordScreen() {
+  const { c, styles } = useResetTheme();
   const [step, setStep] = useState<Step>('confirm');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState<string[]>(emptyOtp);
@@ -412,96 +415,108 @@ function resetError(error: unknown): string {
   return 'Kata sandi tidak dapat disimpan. Coba lagi.';
 }
 
-const styles = StyleSheet.create({
-  otpWrap: {
-    gap: 7,
-  },
-  otpLabel: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.muted,
-  },
-  otpRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  otpBox: {
-    flexGrow: 1,
-    flexBasis: 0,
-    width: 0,
-    minWidth: 0,
-    height: 56,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    paddingVertical: 0,
-    fontFamily: f.semibold,
-    fontSize: 20,
-    color: c.ink,
-  },
-  otpBoxFocused: {
-    borderColor: c.mint600,
-  },
-  otpBoxDisabled: {
-    opacity: 0.5,
-  },
-  center: {
-    alignSelf: 'center',
-    paddingVertical: 2,
-  },
-  link: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.mint700,
-  },
-  linkMuted: {
-    color: c.soft,
-  },
-  subLink: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    color: c.muted,
-  },
-  notice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    padding: 11,
-    borderRadius: radius.sm,
-    backgroundColor: c.mint50,
-  },
-  noticeText: {
-    flex: 1,
-    fontFamily: f.regular,
-    fontSize: 11,
-    lineHeight: 17,
-    color: c.mint700,
-  },
-  done: {
-    gap: 14,
-    alignItems: 'flex-start',
-  },
-  doneIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: c.mint50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneText: {
-    fontFamily: f.regular,
-    fontSize: 13,
-    lineHeight: 20,
-    color: c.muted,
-  },
-  stretch: {
-    alignSelf: 'stretch',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    otpWrap: {
+      gap: 7,
+    },
+    otpLabel: {
+      fontFamily: f.medium,
+      fontSize: 12,
+      color: c.muted,
+    },
+    otpRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    otpBox: {
+      flexGrow: 1,
+      flexBasis: 0,
+      width: 0,
+      minWidth: 0,
+      height: 56,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      paddingVertical: 0,
+      fontFamily: f.semibold,
+      fontSize: 20,
+      color: c.ink,
+    },
+    otpBoxFocused: {
+      borderColor: c.mint600,
+    },
+    otpBoxDisabled: {
+      opacity: 0.5,
+    },
+    center: {
+      alignSelf: 'center',
+      paddingVertical: 2,
+    },
+    link: {
+      fontFamily: f.medium,
+      fontSize: 12,
+      color: c.mint700,
+    },
+    linkMuted: {
+      color: c.soft,
+    },
+    subLink: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      color: c.muted,
+    },
+    notice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      padding: 11,
+      borderRadius: radius.sm,
+      backgroundColor: c.mint50,
+    },
+    noticeText: {
+      flex: 1,
+      fontFamily: f.regular,
+      fontSize: 11,
+      lineHeight: 17,
+      color: c.mint700,
+    },
+    done: {
+      gap: 14,
+      alignItems: 'flex-start',
+    },
+    doneIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: c.mint50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    doneText: {
+      fontFamily: f.regular,
+      fontSize: 13,
+      lineHeight: 20,
+      color: c.muted,
+    },
+    stretch: {
+      alignSelf: 'stretch',
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useResetTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

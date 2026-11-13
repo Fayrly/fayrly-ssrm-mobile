@@ -1,8 +1,10 @@
-import { c, f, hairline } from '@/theme';
+import { useThemeMode } from '@/lib/theme-mode';
+import { f, hairline } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function TabsLayout() {
+  const { colors: c } = useThemeMode();
   return (
     <Tabs
       screenOptions={{

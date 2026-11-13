@@ -12,8 +12,8 @@ import {
 } from '@expo-google-fonts/poppins';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { AppVisibleContext } from '@/lib/app-visibility';
+import { ThemeModeProvider, useThemeMode } from '@/lib/theme-mode';
 import { BrandSplash } from '@/components/brand-splash';
-import { c } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -30,14 +30,17 @@ export default function RootLayout() {
   });
 
   return (
-    <AuthProvider>
-      <RootGate fontsLoaded={fontsLoaded} />
-    </AuthProvider>
+    <ThemeModeProvider>
+      <AuthProvider>
+        <RootGate fontsLoaded={fontsLoaded} />
+      </AuthProvider>
+    </ThemeModeProvider>
   );
 }
 
 function RootGate({ fontsLoaded }: { fontsLoaded: boolean }) {
   const { ready, user } = useAuth();
+  const { mode, colors } = useThemeMode();
   const [splashElapsed, setSplashElapsed] = useState(false);
   const [splashGone, setSplashGone] = useState(false);
   const [splashOpacity] = useState(() => new Animated.Value(1));
@@ -81,12 +84,12 @@ function RootGate({ fontsLoaded }: { fontsLoaded: boolean }) {
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <AppVisibleContext.Provider value={splashGone}>
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: c.canvas },
+            contentStyle: { backgroundColor: colors.canvas },
           }}
         >
           <Stack.Protected guard={!user}>

@@ -17,7 +17,8 @@ import {
 } from 'react-native';
 import type { StyleProp, TextInputProps, TextStyle, ViewStyle } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { body, c, display, f, hairline, kicker, radius, title } from '@/theme';
+import { body, c as light, dark, display, f, hairline, kicker, radius, title, type Colors } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
 import { initials } from '@/lib/format';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
@@ -31,6 +32,7 @@ export function Screen({
   style?: StyleProp<ViewStyle>;
   edges?: ('top' | 'bottom')[];
 }) {
+  const { styles } = useUiTheme();
   return (
     <SafeAreaView edges={edges} style={[styles.screen, style]}>
       {children}
@@ -49,6 +51,7 @@ export function PageHeader({
   subtitle?: string;
   right?: ReactNode;
 }) {
+  const { styles } = useUiTheme();
   return (
     <View style={styles.pageHeader}>
       <View style={styles.pageHeaderText}>
@@ -72,6 +75,7 @@ export function SectionHead({
   action?: string;
   onAction?: () => void;
 }) {
+  const { styles } = useUiTheme();
   return (
     <View style={styles.sectionHead}>
       <Text style={styles.sectionLabel}>{label}</Text>
@@ -106,6 +110,7 @@ export function Button({
   icon?: IconName;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { c, styles } = useUiTheme();
   const inactive = disabled || loading;
   const tone = variant === 'primary' ? styles.buttonPrimary : variant === 'ghost' ? styles.buttonGhost : styles.buttonQuiet;
   const textTone =
@@ -154,6 +159,7 @@ export function Field({
   right?: ReactNode;
   inputStyle?: StyleProp<TextStyle>;
 } & Pick<TextInputProps, 'keyboardType' | 'autoCapitalize' | 'autoComplete' | 'textContentType' | 'maxLength' | 'returnKeyType' | 'onSubmitEditing' | 'editable' | 'autoCorrect' | 'inputMode'>) {
+  const { c, styles } = useUiTheme();
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -211,6 +217,7 @@ export function Chip({
   onPress: () => void;
   count?: number;
 }) {
+  const { styles } = useUiTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -238,6 +245,7 @@ export function Stars({
   size?: number;
   onChange?: (value: number) => void;
 }) {
+  const { c, styles } = useUiTheme();
   const filled = Math.round(value);
   return (
     <View style={styles.stars} accessibilityLabel={`${value} dari 5 bintang`}>
@@ -271,6 +279,7 @@ export function Stars({
 }
 
 export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+  const { styles } = useUiTheme();
   return (
     <View
       style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
@@ -284,6 +293,7 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
 }
 
 export function IconTile({ name, tone = 'mint' }: { name: IconName; tone?: 'mint' | 'crimson' }) {
+  const { c, styles } = useUiTheme();
   const bg = tone === 'crimson' ? c.crimsonSoft : c.mint50;
   const fg = tone === 'crimson' ? c.crimson : c.mint700;
   return (
@@ -308,6 +318,7 @@ export function StateBlock({
   onAction?: () => void;
   compact?: boolean;
 }) {
+  const { c, styles } = useUiTheme();
   return (
     <View style={[styles.state, compact && styles.stateCompact]}>
       <View style={styles.stateIcon}>
@@ -323,6 +334,7 @@ export function StateBlock({
 }
 
 export function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { c, styles } = useUiTheme();
   return (
     <View style={styles.banner}>
       <Ionicons name="alert-circle-outline" size={18} color={c.crimson} />
@@ -347,6 +359,7 @@ export function Skeleton({
   style?: StyleProp<ViewStyle>;
   radius?: number;
 }) {
+  const { c } = useUiTheme();
   const [opacity] = useState(() => new Animated.Value(0.45));
 
   useEffect(() => {
@@ -376,6 +389,7 @@ export function Skeleton({
 }
 
 export function ProgressBar({ percent }: { percent: number }) {
+  const { styles } = useUiTheme();
   const clamped = Math.max(0, Math.min(100, percent));
   return (
     <View style={styles.progressTrack} accessibilityLabel={`${clamped} persen tercapai`}>
@@ -398,6 +412,7 @@ export function NoticeModal({
   if (message && message !== shown) {
     setShown(message);
   }
+  const { c, styles } = useUiTheme();
   const { width } = useWindowDimensions();
   const iconSize = Math.round(Math.min(Math.max(width * 0.17, 60), 76));
 
@@ -426,6 +441,7 @@ export function Sheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { styles } = useUiTheme();
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -443,6 +459,7 @@ export function Sheet({
 }
 
 export function EmptyNotice({ text }: { text: string }) {
+  const { styles } = useUiTheme();
   return (
     <View style={styles.emptyNotice}>
       <Text style={styles.emptyNoticeText}>{text}</Text>
@@ -455,362 +472,379 @@ export function useContentWidth(max = 560): number {
   return Math.min(width, max);
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: c.canvas,
-  },
-  pageHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 14,
-  },
-  pageHeaderText: {
-    flex: 1,
-  },
-  kicker: {
-    ...kicker,
-  },
-  heading: {
-    ...display,
-    marginTop: 6,
-  },
-  subheading: {
-    ...body,
-    marginTop: 6,
-  },
-  sectionHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginTop: 26,
-    marginBottom: 10,
-  },
-  sectionLabel: {
-    fontFamily: f.semibold,
-    fontSize: 15,
-    letterSpacing: -0.2,
-    color: c.ink,
-  },
-  sectionAction: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.mint700,
-  },
-  button: {
-    minHeight: 52,
-    borderRadius: radius.md,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  buttonPrimary: {
-    backgroundColor: c.mint700,
-  },
-  buttonGhost: {
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-  },
-  buttonQuiet: {
-    backgroundColor: 'transparent',
-  },
-  buttonPressed: {
-    opacity: 0.82,
-  },
-  buttonDisabled: {
-    opacity: 0.45,
-  },
-  buttonText: {
-    fontFamily: f.semibold,
-    fontSize: 14,
-  },
-  buttonPrimaryText: {
-    color: c.paper,
-  },
-  buttonGhostText: {
-    color: c.ink,
-  },
-  buttonQuietText: {
-    color: c.mint700,
-  },
-  fieldWrap: {
-    gap: 7,
-  },
-  fieldLabel: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.muted,
-  },
-  field: {
-    minHeight: 52,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  fieldMultiline: {
-    minHeight: 120,
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-  },
-  fieldFocused: {
-    borderColor: c.mint600,
-  },
-  fieldError: {
-    borderColor: c.crimson,
-  },
-  input: {
-    flex: 1,
-    fontFamily: f.regular,
-    fontSize: 14,
-    color: c.ink,
-    paddingVertical: 0,
-  },
-  inputMultiline: {
-    minHeight: 96,
-    textAlignVertical: 'top',
-    lineHeight: 21,
-  },
-  fieldAccessory: {
-    width: 32,
-    height: 44,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  fieldErrorText: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    color: c.crimson,
-  },
-  chip: {
-    height: 36,
-    paddingHorizontal: 14,
-    borderRadius: radius.pill,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  chipActive: {
-    backgroundColor: c.mint700,
-    borderColor: c.mint700,
-  },
-  chipText: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.muted,
-  },
-  chipTextActive: {
-    color: c.paper,
-  },
-  chipCount: {
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: 9,
-    backgroundColor: c.wash,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipCountActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  chipCountText: {
-    fontFamily: f.semibold,
-    fontSize: 10,
-    color: c.mint700,
-  },
-  chipCountTextActive: {
-    color: c.paper,
-  },
-  stars: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  avatar: {
-    backgroundColor: c.mint100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontFamily: f.semibold,
-    color: c.mint700,
-  },
-  iconTile: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  state: {
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingVertical: 36,
-    gap: 8,
-  },
-  stateCompact: {
-    paddingVertical: 20,
-  },
-  stateIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: c.mint50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  stateTitle: {
-    ...title,
-    fontSize: 16,
-  },
-  stateBody: {
-    ...body,
-    maxWidth: 340,
-  },
-  stateButton: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 18,
-  },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 20,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: radius.sm,
-    backgroundColor: c.crimsonSoft,
-  },
-  bannerText: {
-    flex: 1,
-    fontFamily: f.regular,
-    fontSize: 12,
-    lineHeight: 18,
-    color: c.crimson,
-  },
-  bannerAction: {
-    fontFamily: f.semibold,
-    fontSize: 12,
-    color: c.crimson,
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: c.mint100,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-    backgroundColor: c.mint700,
-  },
-  sheetWrap: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheetBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(18,38,31,0.42)',
-  },
-  sheet: {
-    maxHeight: '86%',
-    backgroundColor: c.canvas,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    borderTopWidth: hairline,
-    borderColor: c.line,
-  },
-  sheetHandle: {
-    alignSelf: 'center',
-    width: 42,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: c.mint200,
-    marginBottom: 16,
-  },
-  noticeWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  fill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  noticeScrim: {
-    backgroundColor: 'rgba(18,38,31,0.28)',
-  },
-  noticeCard: {
-    width: '100%',
-    maxWidth: 360,
-    alignItems: 'center',
-    backgroundColor: c.paper,
-    borderRadius: radius.lg,
-    paddingHorizontal: 24,
-    paddingTop: 26,
-    paddingBottom: 20,
-  },
-  noticeTitle: {
-    fontFamily: f.bold,
-    fontSize: 17,
-    lineHeight: 24,
-    letterSpacing: -0.3,
-    color: c.ink,
-    textAlign: 'center',
-    marginTop: 14,
-  },
-  noticeMessage: {
-    fontFamily: f.regular,
-    fontSize: 13,
-    lineHeight: 20,
-    color: c.muted,
-    textAlign: 'center',
-    marginTop: 6,
-  },
-  noticeButton: {
-    alignSelf: 'stretch',
-    marginTop: 22,
-  },
-  emptyNotice: {
-    marginHorizontal: 20,
-    padding: 14,
-    borderRadius: radius.sm,
-    backgroundColor: c.wash,
-  },
-  emptyNoticeText: {
-    ...body,
-    fontSize: 12,
-    color: c.mint700,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: c.canvas,
+    },
+    pageHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      paddingBottom: 14,
+    },
+    pageHeaderText: {
+      flex: 1,
+    },
+    kicker: {
+      ...kicker,
+      color: c.mint700,
+    },
+    heading: {
+      ...display,
+      color: c.ink,
+      marginTop: 6,
+    },
+    subheading: {
+      ...body,
+      color: c.muted,
+      marginTop: 6,
+    },
+    sectionHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      marginTop: 26,
+      marginBottom: 10,
+    },
+    sectionLabel: {
+      fontFamily: f.semibold,
+      fontSize: 15,
+      letterSpacing: -0.2,
+      color: c.ink,
+    },
+    sectionAction: {
+      fontFamily: f.medium,
+      fontSize: 12,
+      color: c.mint700,
+    },
+    button: {
+      minHeight: 52,
+      borderRadius: radius.md,
+      paddingHorizontal: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    buttonPrimary: {
+      backgroundColor: c.mint700,
+    },
+    buttonGhost: {
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+    },
+    buttonQuiet: {
+      backgroundColor: 'transparent',
+    },
+    buttonPressed: {
+      opacity: 0.82,
+    },
+    buttonDisabled: {
+      opacity: 0.45,
+    },
+    buttonText: {
+      fontFamily: f.semibold,
+      fontSize: 14,
+    },
+    buttonPrimaryText: {
+      color: c.paper,
+    },
+    buttonGhostText: {
+      color: c.ink,
+    },
+    buttonQuietText: {
+      color: c.mint700,
+    },
+    fieldWrap: {
+      gap: 7,
+    },
+    fieldLabel: {
+      fontFamily: f.medium,
+      fontSize: 12,
+      color: c.muted,
+    },
+    field: {
+      minHeight: 52,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      paddingHorizontal: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    fieldMultiline: {
+      minHeight: 120,
+      alignItems: 'flex-start',
+      paddingVertical: 12,
+    },
+    fieldFocused: {
+      borderColor: c.mint600,
+    },
+    fieldError: {
+      borderColor: c.crimson,
+    },
+    input: {
+      flex: 1,
+      fontFamily: f.regular,
+      fontSize: 14,
+      color: c.ink,
+      paddingVertical: 0,
+    },
+    inputMultiline: {
+      minHeight: 96,
+      textAlignVertical: 'top',
+      lineHeight: 21,
+    },
+    fieldAccessory: {
+      width: 32,
+      height: 44,
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+    },
+    fieldErrorText: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      color: c.crimson,
+    },
+    chip: {
+      height: 36,
+      paddingHorizontal: 14,
+      borderRadius: radius.pill,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    chipActive: {
+      backgroundColor: c.mint700,
+      borderColor: c.mint700,
+    },
+    chipText: {
+      fontFamily: f.medium,
+      fontSize: 12,
+      color: c.muted,
+    },
+    chipTextActive: {
+      color: c.paper,
+    },
+    chipCount: {
+      minWidth: 18,
+      height: 18,
+      paddingHorizontal: 4,
+      borderRadius: 9,
+      backgroundColor: c.wash,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chipCountActive: {
+      backgroundColor: 'rgba(255,255,255,0.2)',
+    },
+    chipCountText: {
+      fontFamily: f.semibold,
+      fontSize: 10,
+      color: c.mint700,
+    },
+    chipCountTextActive: {
+      color: c.paper,
+    },
+    stars: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    avatar: {
+      backgroundColor: c.mint100,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {
+      fontFamily: f.semibold,
+      color: c.mint700,
+    },
+    iconTile: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    state: {
+      alignItems: 'flex-start',
+      paddingHorizontal: 20,
+      paddingVertical: 36,
+      gap: 8,
+    },
+    stateCompact: {
+      paddingVertical: 20,
+    },
+    stateIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: c.mint50,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 6,
+    },
+    stateTitle: {
+      ...title,
+      color: c.ink,
+      fontSize: 16,
+    },
+    stateBody: {
+      ...body,
+      color: c.muted,
+      maxWidth: 340,
+    },
+    stateButton: {
+      marginTop: 8,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 18,
+    },
+    banner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginHorizontal: 20,
+      marginTop: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: radius.sm,
+      backgroundColor: c.crimsonSoft,
+    },
+    bannerText: {
+      flex: 1,
+      fontFamily: f.regular,
+      fontSize: 12,
+      lineHeight: 18,
+      color: c.crimson,
+    },
+    bannerAction: {
+      fontFamily: f.semibold,
+      fontSize: 12,
+      color: c.crimson,
+    },
+    progressTrack: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: c.mint100,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 4,
+      backgroundColor: c.mint700,
+    },
+    sheetWrap: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    sheetBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(18,38,31,0.42)',
+    },
+    sheet: {
+      maxHeight: '86%',
+      backgroundColor: c.canvas,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      borderTopWidth: hairline,
+      borderColor: c.line,
+    },
+    sheetHandle: {
+      alignSelf: 'center',
+      width: 42,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.mint200,
+      marginBottom: 16,
+    },
+    noticeWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    fill: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    noticeScrim: {
+      backgroundColor: 'rgba(18,38,31,0.28)',
+    },
+    noticeCard: {
+      width: '100%',
+      maxWidth: 360,
+      alignItems: 'center',
+      backgroundColor: c.paper,
+      borderRadius: radius.lg,
+      paddingHorizontal: 24,
+      paddingTop: 26,
+      paddingBottom: 20,
+    },
+    noticeTitle: {
+      fontFamily: f.bold,
+      fontSize: 17,
+      lineHeight: 24,
+      letterSpacing: -0.3,
+      color: c.ink,
+      textAlign: 'center',
+      marginTop: 14,
+    },
+    noticeMessage: {
+      fontFamily: f.regular,
+      fontSize: 13,
+      lineHeight: 20,
+      color: c.muted,
+      textAlign: 'center',
+      marginTop: 6,
+    },
+    noticeButton: {
+      alignSelf: 'stretch',
+      marginTop: 22,
+    },
+    emptyNotice: {
+      marginHorizontal: 20,
+      padding: 14,
+      borderRadius: radius.sm,
+      backgroundColor: c.wash,
+    },
+    emptyNoticeText: {
+      ...body,
+      fontSize: 12,
+      color: c.mint700,
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useUiTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

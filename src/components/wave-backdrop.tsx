@@ -1,8 +1,10 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { c } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, dark, type Colors } from '@/theme';
 
 export function WaveBackdrop({ style }: { style?: StyleProp<ViewStyle> }) {
+  const { c, styles } = useWaveBackdropTheme();
   return (
     <View pointerEvents="none" style={[styles.wrap, style]}>
       <Svg width="100%" height="100%" viewBox="0 0 360 260" preserveAspectRatio="none">
@@ -25,12 +27,24 @@ export function WaveBackdrop({ style }: { style?: StyleProp<ViewStyle> }) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    wrap: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useWaveBackdropTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

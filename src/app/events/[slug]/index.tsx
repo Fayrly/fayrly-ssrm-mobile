@@ -49,7 +49,8 @@ import {
   initials,
 } from '@/lib/format';
 import { useQuery } from '@/lib/use-query';
-import { c, f, hairline, radius } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, dark, f, hairline, radius, type Colors } from '@/theme';
 
 const STATUS_NOTE: Partial<Record<EventStatus, string>> = {
   draft: 'Event ini belum diterbitkan, tiket belum tersedia.',
@@ -58,6 +59,7 @@ const STATUS_NOTE: Partial<Record<EventStatus, string>> = {
 };
 
 export default function EventDetailScreen() {
+  const { c, styles } = useDetailTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
@@ -470,6 +472,7 @@ export default function EventDetailScreen() {
 }
 
 function Header({ onShare }: { onShare?: () => void }) {
+  const { c, styles } = useDetailTheme();
   return (
     <View style={styles.header}>
       <BackButton />
@@ -494,6 +497,7 @@ function Header({ onShare }: { onShare?: () => void }) {
 }
 
 function BackButton() {
+  const { c, styles } = useDetailTheme();
   return (
     <Pressable
       onPress={() => router.back()}
@@ -507,425 +511,438 @@ function BackButton() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 10,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: f.semibold,
-    fontSize: 16,
-    letterSpacing: -0.3,
-    color: c.ink,
-  },
-  headerSpacer: {
-    width: 42,
-  },
-  iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shareNote: {
-    fontFamily: f.medium,
-    fontSize: 10,
-    color: c.mint700,
-    textAlign: 'center',
-    paddingBottom: 6,
-  },
-  cover: {
-    marginHorizontal: 20,
-    height: 214,
-    borderRadius: radius.xl,
-    backgroundColor: c.mint100,
-    overflow: 'hidden',
-  },
-  coverImage: {
-    width: '100%',
-    height: '100%',
-  },
-  coverFallback: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  intro: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    gap: 6,
-  },
-  introKicker: {
-    fontFamily: f.semibold,
-    fontSize: 10,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: c.mint700,
-  },
-  title: {
-    fontFamily: f.bold,
-    fontSize: 28,
-    lineHeight: 34,
-    letterSpacing: -0.9,
-    color: c.ink,
-  },
-  introMeta: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    lineHeight: 18,
-    color: c.muted,
-  },
-  organizerLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  organizerName: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.muted,
-  },
-  statusNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginHorizontal: 20,
-    marginTop: 14,
-    padding: 12,
-    borderRadius: radius.sm,
-    backgroundColor: c.crimsonSoft,
-  },
-  statusNoteText: {
-    flex: 1,
-    fontFamily: f.regular,
-    fontSize: 12,
-    lineHeight: 18,
-    color: c.crimson,
-  },
-  stats: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginHorizontal: 20,
-    marginTop: 18,
-    paddingVertical: 14,
-    borderTopWidth: hairline,
-    borderBottomWidth: hairline,
-    borderColor: c.line,
-  },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 3,
-  },
-  statDivider: {
-    width: hairline,
-    backgroundColor: c.line,
-  },
-  statValue: {
-    fontFamily: f.semibold,
-    fontSize: 15,
-    letterSpacing: -0.2,
-    color: c.ink,
-  },
-  statLabel: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-    textAlign: 'center',
-  },
-  goingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginHorizontal: 20,
-    marginTop: 14,
-  },
-  goingAvatars: {
-    flexDirection: 'row',
-  },
-  goingAvatar: {
-    borderWidth: 2,
-    borderColor: c.canvas,
-    borderRadius: 14,
-  },
-  goingAvatarShift: {
-    marginLeft: -9,
-  },
-  goingText: {
-    flex: 1,
-    fontFamily: f.regular,
-    fontSize: 11,
-    lineHeight: 16,
-    color: c.muted,
-  },
-  donation: {
-    marginHorizontal: 20,
-    marginTop: 18,
-    padding: 16,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    gap: 9,
-  },
-  donationTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  donationLabel: {
-    fontFamily: f.semibold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: c.mint700,
-  },
-  donationPercent: {
-    fontFamily: f.bold,
-    fontSize: 18,
-    letterSpacing: -0.4,
-    color: c.ink,
-  },
-  donationMeta: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    lineHeight: 17,
-    color: c.muted,
-  },
-  descriptionBlock: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  description: {
-    fontFamily: f.regular,
-    fontSize: 13,
-    lineHeight: 21,
-    color: c.muted,
-  },
-  more: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
-  },
-  moreText: {
-    fontFamily: f.semibold,
-    fontSize: 11,
-    color: c.mint700,
-  },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  tag: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: c.line,
-  },
-  tagText: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.muted,
-  },
-  reviewSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-  },
-  average: {
-    fontFamily: f.bold,
-    fontSize: 36,
-    lineHeight: 38,
-    letterSpacing: -1.2,
-    color: c.ink,
-  },
-  reviewCount: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-    marginTop: 3,
-  },
-  reviewForm: {
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    gap: 12,
-  },
-  formLabel: {
-    fontFamily: f.medium,
-    fontSize: 11,
-    color: c.muted,
-  },
-  reviewInput: {
-    minHeight: 96,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.canvas,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontFamily: f.regular,
-    fontSize: 13,
-    lineHeight: 20,
-    color: c.ink,
-    textAlignVertical: 'top',
-  },
-  formFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  charCount: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-  },
-  success: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  successText: {
-    fontFamily: f.medium,
-    fontSize: 11,
-    color: c.mint700,
-  },
-  signInPrompt: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-  },
-  signInIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: c.mint50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signInText: {
-    flex: 1,
-    gap: 2,
-  },
-  signInTitle: {
-    fontFamily: f.semibold,
-    fontSize: 13,
-    color: c.ink,
-  },
-  signInBody: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    lineHeight: 16,
-    color: c.muted,
-  },
-  orgPanel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginHorizontal: 20,
-    marginTop: 28,
-    paddingTop: 18,
-    borderTopWidth: hairline,
-    borderTopColor: c.line,
-  },
-  orgText: {
-    flex: 1,
-    gap: 2,
-  },
-  orgLabel: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-  },
-  orgName: {
-    fontFamily: f.semibold,
-    fontSize: 13,
-    color: c.ink,
-  },
-  orgInitials: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: c.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orgInitialsText: {
-    fontFamily: f.semibold,
-    fontSize: 10,
-    color: c.muted,
-  },
-  loading: {
-    paddingHorizontal: 20,
-    paddingTop: 2,
-  },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    backgroundColor: c.paper,
-    borderTopWidth: hairline,
-    borderTopColor: c.line,
-  },
-  footerPrice: {
-    flex: 1,
-    gap: 1,
-  },
-  footerLabel: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-  },
-  footerValue: {
-    fontFamily: f.semibold,
-    fontSize: 16,
-    letterSpacing: -0.3,
-    color: c.ink,
-  },
-  footerButton: {
-    minWidth: 150,
-    borderRadius: radius.pill,
-    paddingHorizontal: 24,
-  },
-  pressed: {
-    opacity: 0.75,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 10,
+    },
+    headerTitle: {
+      flex: 1,
+      textAlign: 'center',
+      fontFamily: f.semibold,
+      fontSize: 16,
+      letterSpacing: -0.3,
+      color: c.ink,
+    },
+    headerSpacer: {
+      width: 42,
+    },
+    iconButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    shareNote: {
+      fontFamily: f.medium,
+      fontSize: 10,
+      color: c.mint700,
+      textAlign: 'center',
+      paddingBottom: 6,
+    },
+    cover: {
+      marginHorizontal: 20,
+      height: 214,
+      borderRadius: radius.xl,
+      backgroundColor: c.mint100,
+      overflow: 'hidden',
+    },
+    coverImage: {
+      width: '100%',
+      height: '100%',
+    },
+    coverFallback: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    intro: {
+      paddingHorizontal: 20,
+      paddingTop: 18,
+      gap: 6,
+    },
+    introKicker: {
+      fontFamily: f.semibold,
+      fontSize: 10,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+      color: c.mint700,
+    },
+    title: {
+      fontFamily: f.bold,
+      fontSize: 28,
+      lineHeight: 34,
+      letterSpacing: -0.9,
+      color: c.ink,
+    },
+    introMeta: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      lineHeight: 18,
+      color: c.muted,
+    },
+    organizerLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 4,
+    },
+    organizerName: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      color: c.muted,
+    },
+    statusNote: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      marginHorizontal: 20,
+      marginTop: 14,
+      padding: 12,
+      borderRadius: radius.sm,
+      backgroundColor: c.crimsonSoft,
+    },
+    statusNoteText: {
+      flex: 1,
+      fontFamily: f.regular,
+      fontSize: 12,
+      lineHeight: 18,
+      color: c.crimson,
+    },
+    stats: {
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      marginHorizontal: 20,
+      marginTop: 18,
+      paddingVertical: 14,
+      borderTopWidth: hairline,
+      borderBottomWidth: hairline,
+      borderColor: c.line,
+    },
+    stat: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 3,
+    },
+    statDivider: {
+      width: hairline,
+      backgroundColor: c.line,
+    },
+    statValue: {
+      fontFamily: f.semibold,
+      fontSize: 15,
+      letterSpacing: -0.2,
+      color: c.ink,
+    },
+    statLabel: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+      textAlign: 'center',
+    },
+    goingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginHorizontal: 20,
+      marginTop: 14,
+    },
+    goingAvatars: {
+      flexDirection: 'row',
+    },
+    goingAvatar: {
+      borderWidth: 2,
+      borderColor: c.canvas,
+      borderRadius: 14,
+    },
+    goingAvatarShift: {
+      marginLeft: -9,
+    },
+    goingText: {
+      flex: 1,
+      fontFamily: f.regular,
+      fontSize: 11,
+      lineHeight: 16,
+      color: c.muted,
+    },
+    donation: {
+      marginHorizontal: 20,
+      marginTop: 18,
+      padding: 16,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      gap: 9,
+    },
+    donationTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    donationLabel: {
+      fontFamily: f.semibold,
+      fontSize: 10,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: c.mint700,
+    },
+    donationPercent: {
+      fontFamily: f.bold,
+      fontSize: 18,
+      letterSpacing: -0.4,
+      color: c.ink,
+    },
+    donationMeta: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      lineHeight: 17,
+      color: c.muted,
+    },
+    descriptionBlock: {
+      paddingHorizontal: 20,
+      gap: 8,
+    },
+    description: {
+      fontFamily: f.regular,
+      fontSize: 13,
+      lineHeight: 21,
+      color: c.muted,
+    },
+    more: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      alignSelf: 'flex-start',
+      paddingVertical: 4,
+    },
+    moreText: {
+      fontFamily: f.semibold,
+      fontSize: 11,
+      color: c.mint700,
+    },
+    tags: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 4,
+    },
+    tag: {
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: c.line,
+    },
+    tagText: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.muted,
+    },
+    reviewSummary: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+    },
+    average: {
+      fontFamily: f.bold,
+      fontSize: 36,
+      lineHeight: 38,
+      letterSpacing: -1.2,
+      color: c.ink,
+    },
+    reviewCount: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+      marginTop: 3,
+    },
+    reviewForm: {
+      marginHorizontal: 20,
+      padding: 16,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      gap: 12,
+    },
+    formLabel: {
+      fontFamily: f.medium,
+      fontSize: 11,
+      color: c.muted,
+    },
+    reviewInput: {
+      minHeight: 96,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.canvas,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontFamily: f.regular,
+      fontSize: 13,
+      lineHeight: 20,
+      color: c.ink,
+      textAlignVertical: 'top',
+    },
+    formFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    charCount: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+    },
+    success: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    successText: {
+      fontFamily: f.medium,
+      fontSize: 11,
+      color: c.mint700,
+    },
+    signInPrompt: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginHorizontal: 20,
+      padding: 16,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+    },
+    signInIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: c.mint50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    signInText: {
+      flex: 1,
+      gap: 2,
+    },
+    signInTitle: {
+      fontFamily: f.semibold,
+      fontSize: 13,
+      color: c.ink,
+    },
+    signInBody: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      lineHeight: 16,
+      color: c.muted,
+    },
+    orgPanel: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginHorizontal: 20,
+      marginTop: 28,
+      paddingTop: 18,
+      borderTopWidth: hairline,
+      borderTopColor: c.line,
+    },
+    orgText: {
+      flex: 1,
+      gap: 2,
+    },
+    orgLabel: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+    },
+    orgName: {
+      fontFamily: f.semibold,
+      fontSize: 13,
+      color: c.ink,
+    },
+    orgInitials: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: c.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    orgInitialsText: {
+      fontFamily: f.semibold,
+      fontSize: 10,
+      color: c.muted,
+    },
+    loading: {
+      paddingHorizontal: 20,
+      paddingTop: 2,
+    },
+    footer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      backgroundColor: c.paper,
+      borderTopWidth: hairline,
+      borderTopColor: c.line,
+    },
+    footerPrice: {
+      flex: 1,
+      gap: 1,
+    },
+    footerLabel: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+    },
+    footerValue: {
+      fontFamily: f.semibold,
+      fontSize: 16,
+      letterSpacing: -0.3,
+      color: c.ink,
+    },
+    footerButton: {
+      minWidth: 150,
+      borderRadius: radius.pill,
+      paddingHorizontal: 24,
+    },
+    pressed: {
+      opacity: 0.75,
+    },
+
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useDetailTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

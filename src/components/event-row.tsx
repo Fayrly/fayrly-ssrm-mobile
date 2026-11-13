@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EVENT_TYPE_LABEL, type Event } from '@/lib/api';
 import { formatCompactPrice, formatEventDate, formatNumber } from '@/lib/format';
-import { c, f, hairline } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, hairline, dark, type Colors } from '@/theme';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 
@@ -27,6 +28,7 @@ export function EventRow({
   onPress: () => void;
   divider?: boolean;
 }) {
+  const { c, styles } = useEventRowTheme();
   const date = dateParts(event.starts_at);
   const price = formatCompactPrice(event.price_min, event.currency);
   const type = EVENT_TYPE_LABEL[event.type] ?? 'Event';
@@ -72,99 +74,112 @@ export function EventRow({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  divider: {
-    borderBottomWidth: hairline,
-    borderBottomColor: c.line,
-  },
-  pressed: {
-    backgroundColor: c.wash,
-  },
-  rail: {
-    width: 42,
-    alignItems: 'flex-start',
-    paddingTop: 2,
-  },
-  day: {
-    fontFamily: f.bold,
-    fontSize: 26,
-    lineHeight: 28,
-    letterSpacing: -1,
-    color: c.ink,
-  },
-  month: {
-    fontFamily: f.semibold,
-    fontSize: 9,
-    letterSpacing: 1.4,
-    color: c.mint700,
-    marginTop: 2,
-  },
-  railLine: {
-    width: 18,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: c.mint200,
-    marginTop: 8,
-  },
-  content: {
-    flex: 1,
-    gap: 5,
-  },
-  topLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  type: {
-    fontFamily: f.medium,
-    fontSize: 10,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: c.mint700,
-  },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: c.mint200,
-  },
-  price: {
-    fontFamily: f.medium,
-    fontSize: 10,
-    letterSpacing: 0.4,
-    color: c.muted,
-  },
-  title: {
-    fontFamily: f.semibold,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: -0.2,
-    color: c.ink,
-  },
-  venue: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.muted,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 1,
-  },
-  meta: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    color: c.soft,
-  },
-  chevron: {
-    marginTop: 20,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      gap: 12,
+    },
+    divider: {
+      borderBottomWidth: hairline,
+      borderBottomColor: c.line,
+    },
+    pressed: {
+      backgroundColor: c.wash,
+    },
+    rail: {
+      width: 42,
+      alignItems: 'flex-start',
+      paddingTop: 2,
+    },
+    day: {
+      fontFamily: f.bold,
+      fontSize: 26,
+      lineHeight: 28,
+      letterSpacing: -1,
+      color: c.ink,
+    },
+    month: {
+      fontFamily: f.semibold,
+      fontSize: 9,
+      letterSpacing: 1.4,
+      color: c.mint700,
+      marginTop: 2,
+    },
+    railLine: {
+      width: 18,
+      height: 2,
+      borderRadius: 1,
+      backgroundColor: c.mint200,
+      marginTop: 8,
+    },
+    content: {
+      flex: 1,
+      gap: 5,
+    },
+    topLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    type: {
+      fontFamily: f.medium,
+      fontSize: 10,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: c.mint700,
+    },
+    dot: {
+      width: 3,
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: c.mint200,
+    },
+    price: {
+      fontFamily: f.medium,
+      fontSize: 10,
+      letterSpacing: 0.4,
+      color: c.muted,
+    },
+    title: {
+      fontFamily: f.semibold,
+      fontSize: 15,
+      lineHeight: 20,
+      letterSpacing: -0.2,
+      color: c.ink,
+    },
+    venue: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      color: c.muted,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 1,
+    },
+    meta: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      color: c.soft,
+    },
+    chevron: {
+      marginTop: 20,
+    },
+
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useEventRowTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

@@ -18,6 +18,26 @@ export const c = {
   crimsonSoft: '#FCE9EF',
 };
 
+export type Colors = typeof c;
+
+export const dark: Colors = {
+  canvas: '#0F1713',
+  paper: '#17221C',
+  wash: '#1C2A23',
+  mint50: '#20342B',
+  mint100: '#28453A',
+  mint200: '#3C6B5A',
+  mint300: '#548C77',
+  mint600: '#63B49B',
+  mint700: '#8ADCC2',
+  ink: '#E9F4EE',
+  muted: '#A9BEB5',
+  soft: '#7C948B',
+  line: '#25362E',
+  crimson: '#FF6B93',
+  crimsonSoft: '#3B1C29',
+};
+
 export const f = {
   regular: 'Poppins_400Regular',
   medium: 'Poppins_500Medium',

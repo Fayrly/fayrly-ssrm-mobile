@@ -5,7 +5,8 @@ import { useAuth } from '@/lib/auth';
 import { formatLongDate, formatMoney, formatTimeRange } from '@/lib/format';
 import { buildTiers, MAX_TICKETS, SECTIONS } from '@/lib/tickets';
 import { useQuery } from '@/lib/use-query';
-import { c, f, hairline, radius } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, hairline, radius, dark, type Colors } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -21,6 +22,7 @@ export default function CheckoutScreen() {
 }
 
 function Checkout({ params }: { params: CheckoutParams }) {
+  const { c, styles } = useCheckoutTheme();
   const slug = typeof params.slug === 'string' ? params.slug : '';
   const eventQuery = useQuery(() => getEvent(slug), [slug], slug.length > 0);
   const { user } = useAuth();
@@ -221,6 +223,7 @@ function Checkout({ params }: { params: CheckoutParams }) {
 }
 
 function Header({ onBack }: { onBack: () => void }) {
+  const { c, styles } = useCheckoutTheme();
   return (
     <View style={styles.header}>
       <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Kembali ke tiket" style={({ pressed }) => [styles.back, pressed && { opacity: 0.7 }]}>
@@ -232,44 +235,56 @@ function Header({ onBack }: { onBack: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10, gap: 12 },
-  back: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center', fontFamily: f.semibold, fontSize: 16, letterSpacing: -0.3, color: c.ink },
-  headerSpacer: { width: 44 },
-  content: { paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontFamily: f.semibold, fontSize: 16, letterSpacing: -0.4, color: c.ink },
-  sectionGap: { marginTop: 12 },
-  sectionCopy: { marginTop: 4 },
-  editButton: { minHeight: 44, paddingLeft: 16, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  editText: { fontFamily: f.medium, fontSize: 12, color: c.mint700 },
-  ticketCard: { borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.paper, overflow: 'hidden' },
-  eventRow: { flexDirection: 'row', padding: 14, gap: 12, alignItems: 'center' },
-  cover: { width: 76, height: 96, borderRadius: radius.sm, backgroundColor: c.mint50 },
-  coverFallback: { alignItems: 'center', justifyContent: 'center' },
-  eventInfo: { flex: 1, gap: 3 },
-  eventTitle: { fontFamily: f.semibold, fontSize: 14, lineHeight: 21, color: c.ink, marginBottom: 4 },
-  small: { fontFamily: f.regular, fontSize: 11, lineHeight: 17, color: c.muted },
-  ticketLine: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderTopWidth: 1, borderTopColor: c.line, borderStyle: 'dashed', backgroundColor: c.canvas },
-  ticketName: { flex: 1, fontFamily: f.medium, fontSize: 12, color: c.mint700 },
-  quantity: { fontFamily: f.medium, fontSize: 11, color: c.muted },
-  buyerCard: { padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.lg, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line },
-  buyerIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: c.mint50, alignItems: 'center', justifyContent: 'center' },
-  buyerName: { fontFamily: f.medium, fontSize: 13, color: c.ink },
-  costCard: { borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.paper, padding: 16, gap: 10 },
-  costRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  costLabel: { flex: 1, fontFamily: f.regular, fontSize: 12, color: c.muted },
-  costValue: { fontFamily: f.medium, fontSize: 12, color: c.ink },
-  unitPrice: { fontFamily: f.regular, fontSize: 10, color: c.muted, marginTop: -6 },
-  subtotalRow: { borderTopWidth: hairline, borderTopColor: c.line, paddingTop: 14, marginTop: 2 },
-  subtotalLabel: { fontFamily: f.semibold, fontSize: 13, color: c.ink },
-  subtotalValue: { fontFamily: f.semibold, fontSize: 15, color: c.mint700 },
-  previewNote: { flexDirection: 'row', gap: 8, paddingVertical: 8 },
-  previewText: { flex: 1, fontFamily: f.regular, fontSize: 10, lineHeight: 16, color: c.muted },
-  footer: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 12, backgroundColor: c.paper, borderTopWidth: hairline, borderTopColor: c.line },
-  footerText: { flex: 1, gap: 2 },
-  footerValue: { fontFamily: f.semibold, fontSize: 16, color: c.ink, letterSpacing: -0.4 },
-  footerMethod: { fontFamily: f.medium, fontSize: 10, color: c.mint700 },
-  footerButton: { borderRadius: radius.pill, paddingHorizontal: 24, minWidth: 130 },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10, gap: 12 },
+    back: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { flex: 1, textAlign: 'center', fontFamily: f.semibold, fontSize: 16, letterSpacing: -0.3, color: c.ink },
+    headerSpacer: { width: 44 },
+    content: { paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
+    sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    heading: { fontFamily: f.semibold, fontSize: 16, letterSpacing: -0.4, color: c.ink },
+    sectionGap: { marginTop: 12 },
+    sectionCopy: { marginTop: 4 },
+    editButton: { minHeight: 44, paddingLeft: 16, flexDirection: 'row', alignItems: 'center', gap: 4 },
+    editText: { fontFamily: f.medium, fontSize: 12, color: c.mint700 },
+    ticketCard: { borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.paper, overflow: 'hidden' },
+    eventRow: { flexDirection: 'row', padding: 14, gap: 12, alignItems: 'center' },
+    cover: { width: 76, height: 96, borderRadius: radius.sm, backgroundColor: c.mint50 },
+    coverFallback: { alignItems: 'center', justifyContent: 'center' },
+    eventInfo: { flex: 1, gap: 3 },
+    eventTitle: { fontFamily: f.semibold, fontSize: 14, lineHeight: 21, color: c.ink, marginBottom: 4 },
+    small: { fontFamily: f.regular, fontSize: 11, lineHeight: 17, color: c.muted },
+    ticketLine: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderTopWidth: 1, borderTopColor: c.line, borderStyle: 'dashed', backgroundColor: c.canvas },
+    ticketName: { flex: 1, fontFamily: f.medium, fontSize: 12, color: c.mint700 },
+    quantity: { fontFamily: f.medium, fontSize: 11, color: c.muted },
+    buyerCard: { padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.lg, backgroundColor: c.paper, borderWidth: 1, borderColor: c.line },
+    buyerIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: c.mint50, alignItems: 'center', justifyContent: 'center' },
+    buyerName: { fontFamily: f.medium, fontSize: 13, color: c.ink },
+    costCard: { borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.paper, padding: 16, gap: 10 },
+    costRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+    costLabel: { flex: 1, fontFamily: f.regular, fontSize: 12, color: c.muted },
+    costValue: { fontFamily: f.medium, fontSize: 12, color: c.ink },
+    unitPrice: { fontFamily: f.regular, fontSize: 10, color: c.muted, marginTop: -6 },
+    subtotalRow: { borderTopWidth: hairline, borderTopColor: c.line, paddingTop: 14, marginTop: 2 },
+    subtotalLabel: { fontFamily: f.semibold, fontSize: 13, color: c.ink },
+    subtotalValue: { fontFamily: f.semibold, fontSize: 15, color: c.mint700 },
+    previewNote: { flexDirection: 'row', gap: 8, paddingVertical: 8 },
+    previewText: { flex: 1, fontFamily: f.regular, fontSize: 10, lineHeight: 16, color: c.muted },
+    footer: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 12, backgroundColor: c.paper, borderTopWidth: hairline, borderTopColor: c.line },
+    footerText: { flex: 1, gap: 2 },
+    footerValue: { fontFamily: f.semibold, fontSize: 16, color: c.ink, letterSpacing: -0.4 },
+    footerMethod: { fontFamily: f.medium, fontSize: 10, color: c.mint700 },
+    footerButton: { borderRadius: radius.pill, paddingHorizontal: 24, minWidth: 130 },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useCheckoutTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

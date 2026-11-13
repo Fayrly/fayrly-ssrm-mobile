@@ -16,13 +16,15 @@ import { buildTiers, MAX_TICKETS, SECTIONS, type TicketTier } from '@/lib/ticket
 import { useAuth } from '@/lib/auth';
 import { formatCompactPrice, formatMoney } from '@/lib/format';
 import { useQuery } from '@/lib/use-query';
-import { c, f, hairline, radius } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, hairline, radius, dark, type Colors } from '@/theme';
 
 const BLOCK_WIDTH = 42;
 const BLOCK_HEIGHT = 28;
 const MAP_HEIGHT = 244;
 
 export default function TicketScreen() {
+  const { c, styles } = useTicketTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const key = typeof slug === 'string' ? slug : '';
   const { isAuthenticated } = useAuth();
@@ -312,6 +314,7 @@ function StadiumMap({
   active: string;
   onSelect: (zone: string) => void;
 }) {
+  const { styles } = useTicketTheme();
   const centerX = width / 2;
   const centerY = MAP_HEIGHT / 2 + 8;
   const radiusX = width / 2 - 26;
@@ -367,6 +370,7 @@ function StadiumMap({
 }
 
 function Header({ title }: { title: string }) {
+  const { styles } = useTicketTheme();
   return (
     <View style={styles.header}>
       <BackButton />
@@ -379,6 +383,7 @@ function Header({ title }: { title: string }) {
 }
 
 function BackButton() {
+  const { c, styles } = useTicketTheme();
   return (
     <Pressable
       onPress={() => router.back()}
@@ -392,349 +397,361 @@ function BackButton() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 10,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: f.semibold,
-    fontSize: 16,
-    letterSpacing: -0.3,
-    color: c.ink,
-  },
-  headerSpacer: {
-    width: 42,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loading: {
-    paddingHorizontal: 20,
-    paddingTop: 6,
-  },
-  venueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 4,
-  },
-  venueIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: c.mint50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  venueText: {
-    flex: 1,
-    gap: 1,
-  },
-  venueName: {
-    fontFamily: f.semibold,
-    fontSize: 13,
-    letterSpacing: -0.2,
-    color: c.ink,
-  },
-  venueCity: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    color: c.muted,
-  },
-  venueWarn: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    lineHeight: 17,
-    color: c.crimson,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  tierRow: {
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  mapWrap: {
-    alignItems: 'center',
-    paddingTop: 16,
-  },
-  map: {
-    borderRadius: 999,
-    backgroundColor: c.wash,
-    borderWidth: 1,
-    borderColor: c.mint100,
-  },
-  stage: {
-    position: 'absolute',
-    top: 16,
-    alignSelf: 'center',
-    width: 104,
-    height: 32,
-    borderRadius: radius.pill,
-    backgroundColor: c.mint700,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stageText: {
-    fontFamily: f.semibold,
-    fontSize: 8,
-    letterSpacing: 2.4,
-    color: c.paper,
-  },
-  field: {
-    position: 'absolute',
-    top: MAP_HEIGHT / 2 + 8 - 38,
-    alignSelf: 'center',
-    width: 116,
-    height: 76,
-    borderRadius: radius.pill,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.mint100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fieldText: {
-    fontFamily: f.semibold,
-    fontSize: 8,
-    letterSpacing: 2,
-    color: c.soft,
-  },
-  block: {
-    position: 'absolute',
-    width: BLOCK_WIDTH,
-    height: BLOCK_HEIGHT,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: c.mint200,
-    backgroundColor: c.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  blockActive: {
-    backgroundColor: c.mint700,
-    borderColor: c.mint700,
-  },
-  blockDots: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: 18,
-    gap: 2,
-  },
-  blockDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: c.mint300,
-  },
-  blockDotActive: {
-    backgroundColor: c.mint200,
-  },
-  mapHint: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-    marginTop: 10,
-  },
-  areaCard: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    overflow: 'hidden',
-  },
-  areaHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingTop: 14,
-    paddingBottom: 12,
-    borderBottomWidth: hairline,
-    borderBottomColor: c.line,
-  },
-  areaArrow: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.canvas,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  areaTitleWrap: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 1,
-  },
-  areaName: {
-    fontFamily: f.semibold,
-    fontSize: 15,
-    letterSpacing: -0.3,
-    color: c.ink,
-  },
-  areaTier: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.muted,
-  },
-  areaBody: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    gap: 6,
-  },
-  areaLabel: {
-    fontFamily: f.semibold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: c.mint700,
-  },
-  areaDescription: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    lineHeight: 18,
-    color: c.muted,
-    marginBottom: 2,
-  },
-  perk: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  perkText: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    color: c.muted,
-  },
-  areaPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: hairline,
-    borderTopColor: c.line,
-    backgroundColor: c.canvas,
-  },
-  areaPriceText: {
-    gap: 1,
-  },
-  priceLabel: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-  },
-  priceValue: {
-    fontFamily: f.bold,
-    fontSize: 16,
-    letterSpacing: -0.4,
-    color: c.ink,
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    overflow: 'hidden',
-  },
-  stepButton: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepDisabled: {
-    opacity: 0.45,
-  },
-  stepValue: {
-    minWidth: 24,
-    textAlign: 'center',
-    fontFamily: f.semibold,
-    fontSize: 14,
-    color: c.ink,
-  },
-  limit: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  note: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 7,
-    marginHorizontal: 20,
-    marginTop: 20,
-    paddingTop: 14,
-    borderTopWidth: hairline,
-    borderTopColor: c.line,
-  },
-  noteText: {
-    flex: 1,
-    fontFamily: f.regular,
-    fontSize: 10,
-    lineHeight: 16,
-    color: c.soft,
-  },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    backgroundColor: c.paper,
-    borderTopWidth: hairline,
-    borderTopColor: c.line,
-  },
-  footerTotal: {
-    flex: 1,
-    gap: 1,
-  },
-  footerLabel: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-  },
-  footerValue: {
-    fontFamily: f.semibold,
-    fontSize: 15,
-    letterSpacing: -0.2,
-    color: c.ink,
-  },
-  footerButton: {
-    minWidth: 168,
-    borderRadius: radius.pill,
-    paddingHorizontal: 24,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 10,
+    },
+    headerTitle: {
+      flex: 1,
+      textAlign: 'center',
+      fontFamily: f.semibold,
+      fontSize: 16,
+      letterSpacing: -0.3,
+      color: c.ink,
+    },
+    headerSpacer: {
+      width: 42,
+    },
+    backButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loading: {
+      paddingHorizontal: 20,
+      paddingTop: 6,
+    },
+    venueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingHorizontal: 20,
+      paddingTop: 4,
+    },
+    venueIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: c.mint50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    venueText: {
+      flex: 1,
+      gap: 1,
+    },
+    venueName: {
+      fontFamily: f.semibold,
+      fontSize: 13,
+      letterSpacing: -0.2,
+      color: c.ink,
+    },
+    venueCity: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      color: c.muted,
+    },
+    venueWarn: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      lineHeight: 17,
+      color: c.crimson,
+      paddingHorizontal: 20,
+      paddingTop: 10,
+    },
+    tierRow: {
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    mapWrap: {
+      alignItems: 'center',
+      paddingTop: 16,
+    },
+    map: {
+      borderRadius: 999,
+      backgroundColor: c.wash,
+      borderWidth: 1,
+      borderColor: c.mint100,
+    },
+    stage: {
+      position: 'absolute',
+      top: 16,
+      alignSelf: 'center',
+      width: 104,
+      height: 32,
+      borderRadius: radius.pill,
+      backgroundColor: c.mint700,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stageText: {
+      fontFamily: f.semibold,
+      fontSize: 8,
+      letterSpacing: 2.4,
+      color: c.paper,
+    },
+    field: {
+      position: 'absolute',
+      top: MAP_HEIGHT / 2 + 8 - 38,
+      alignSelf: 'center',
+      width: 116,
+      height: 76,
+      borderRadius: radius.pill,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.mint100,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    fieldText: {
+      fontFamily: f.semibold,
+      fontSize: 8,
+      letterSpacing: 2,
+      color: c.soft,
+    },
+    block: {
+      position: 'absolute',
+      width: BLOCK_WIDTH,
+      height: BLOCK_HEIGHT,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: c.mint200,
+      backgroundColor: c.paper,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    blockActive: {
+      backgroundColor: c.mint700,
+      borderColor: c.mint700,
+    },
+    blockDots: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      width: 18,
+      gap: 2,
+    },
+    blockDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.mint300,
+    },
+    blockDotActive: {
+      backgroundColor: c.mint200,
+    },
+    mapHint: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+      marginTop: 10,
+    },
+    areaCard: {
+      marginHorizontal: 20,
+      marginTop: 16,
+      borderRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      overflow: 'hidden',
+    },
+    areaHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingHorizontal: 12,
+      paddingTop: 14,
+      paddingBottom: 12,
+      borderBottomWidth: hairline,
+      borderBottomColor: c.line,
+    },
+    areaArrow: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.canvas,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    areaTitleWrap: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 1,
+    },
+    areaName: {
+      fontFamily: f.semibold,
+      fontSize: 15,
+      letterSpacing: -0.3,
+      color: c.ink,
+    },
+    areaTier: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.muted,
+    },
+    areaBody: {
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      gap: 6,
+    },
+    areaLabel: {
+      fontFamily: f.semibold,
+      fontSize: 10,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: c.mint700,
+    },
+    areaDescription: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      lineHeight: 18,
+      color: c.muted,
+      marginBottom: 2,
+    },
+    perk: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    perkText: {
+      fontFamily: f.regular,
+      fontSize: 11,
+      color: c.muted,
+    },
+    areaPriceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginTop: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderTopWidth: hairline,
+      borderTopColor: c.line,
+      backgroundColor: c.canvas,
+    },
+    areaPriceText: {
+      gap: 1,
+    },
+    priceLabel: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+    },
+    priceValue: {
+      fontFamily: f.bold,
+      fontSize: 16,
+      letterSpacing: -0.4,
+      color: c.ink,
+    },
+    stepper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      overflow: 'hidden',
+    },
+    stepButton: {
+      width: 42,
+      height: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepDisabled: {
+      opacity: 0.45,
+    },
+    stepValue: {
+      minWidth: 24,
+      textAlign: 'center',
+      fontFamily: f.semibold,
+      fontSize: 14,
+      color: c.ink,
+    },
+    limit: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+      paddingHorizontal: 20,
+      paddingTop: 10,
+    },
+    note: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 7,
+      marginHorizontal: 20,
+      marginTop: 20,
+      paddingTop: 14,
+      borderTopWidth: hairline,
+      borderTopColor: c.line,
+    },
+    noteText: {
+      flex: 1,
+      fontFamily: f.regular,
+      fontSize: 10,
+      lineHeight: 16,
+      color: c.soft,
+    },
+    footer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      backgroundColor: c.paper,
+      borderTopWidth: hairline,
+      borderTopColor: c.line,
+    },
+    footerTotal: {
+      flex: 1,
+      gap: 1,
+    },
+    footerLabel: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+    },
+    footerValue: {
+      fontFamily: f.semibold,
+      fontSize: 15,
+      letterSpacing: -0.2,
+      color: c.ink,
+    },
+    footerButton: {
+      minWidth: 168,
+      borderRadius: radius.pill,
+      paddingHorizontal: 24,
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useTicketTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

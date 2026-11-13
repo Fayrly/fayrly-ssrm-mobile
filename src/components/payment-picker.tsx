@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 
 import { Button, Field, Sheet } from '@/components/ui';
-import { c, f, hairline, radius } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, hairline, radius, dark, type Colors } from '@/theme';
 
 export type PaymentChoice =
   | { method: 'bank'; bank: string }
@@ -57,6 +58,7 @@ function normalize(text: string) {
 }
 
 function RadioMark({ checked }: { checked: boolean }) {
+  const { styles } = usePaymentPickerTheme();
   return (
     <View style={[styles.radio, checked && styles.radioChecked]} accessible={false}>
       {checked ? <View style={styles.radioDot} /> : null}
@@ -71,6 +73,7 @@ export function PaymentPicker({
   value: PaymentChoice | null;
   onChange: (value: PaymentChoice) => void;
 }) {
+  const { c, styles } = usePaymentPickerTheme();
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState('');
   const [manual, setManual] = useState(false);
@@ -299,82 +302,94 @@ export function PaymentPicker({
   );
 }
 
-const styles = StyleSheet.create({
-  choices: { gap: 10 },
-  choice: {
-    minHeight: 82,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    backgroundColor: c.paper,
-    borderWidth: hairline,
-    borderColor: c.line,
-    borderRadius: radius.md,
-  },
-  selected: { borderColor: c.mint600, backgroundColor: c.mint50 },
-  logoTile: {
-    width: 76,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: c.paper,
-    borderWidth: hairline,
-    borderColor: c.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: { width: 64, height: 32 },
-  bankLogoTile: { width: 76, height: 44, borderRadius: 8, backgroundColor: c.paper, alignItems: 'center', justifyContent: 'center' },
-  bankPreview: { width: 64, flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  bankPreviewLogo: { width: 30, height: 16 },
-  choiceCopy: { flex: 1, minWidth: 0, gap: 3 },
-  choiceTitle: { fontFamily: f.semibold, fontSize: 14, color: c.ink },
-  subtitle: { fontFamily: f.regular, fontSize: 11, lineHeight: 17, color: c.muted },
-  bankAffordance: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  actionText: { fontFamily: f.medium, fontSize: 11, color: c.mint700 },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: radius.pill,
-    borderWidth: hairline,
-    borderColor: c.soft,
-    backgroundColor: c.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioChecked: { borderColor: c.mint700 },
-  radioDot: { width: 10, height: 10, borderRadius: radius.pill, backgroundColor: c.mint700 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  sheetTitle: { flex: 1, fontFamily: f.semibold, fontSize: 16, lineHeight: 23, color: c.ink },
-  close: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  sheetContent: { gap: 14, paddingBottom: 8 },
-  input: { minHeight: 44 },
-  back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  otherBank: {
-    minHeight: 64,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: radius.md,
-    borderWidth: hairline,
-    borderColor: c.line,
-    backgroundColor: c.wash,
-  },
-  bankRow: {
-    minHeight: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 4,
-    borderRadius: radius.sm,
-    borderWidth: hairline,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-  },
-  bankName: { fontFamily: f.medium, fontSize: 13, color: c.ink },
-  noResults: { fontFamily: f.regular, fontSize: 12, lineHeight: 19, color: c.muted, paddingVertical: 12 },
-  pressed: { opacity: 0.72 },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    choices: { gap: 10 },
+    choice: {
+      minHeight: 82,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      padding: 14,
+      backgroundColor: c.paper,
+      borderWidth: hairline,
+      borderColor: c.line,
+      borderRadius: radius.md,
+    },
+    selected: { borderColor: c.mint600, backgroundColor: c.mint50 },
+    logoTile: {
+      width: 76,
+      height: 44,
+      borderRadius: 8,
+      backgroundColor: '#FFFFFF',
+      borderWidth: hairline,
+      borderColor: light.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logo: { width: 64, height: 32 },
+    bankLogoTile: { width: 76, height: 44, borderRadius: 8, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+    bankPreview: { width: 64, flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+    bankPreviewLogo: { width: 30, height: 16 },
+    choiceCopy: { flex: 1, minWidth: 0, gap: 3 },
+    choiceTitle: { fontFamily: f.semibold, fontSize: 14, color: c.ink },
+    subtitle: { fontFamily: f.regular, fontSize: 11, lineHeight: 17, color: c.muted },
+    bankAffordance: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    actionText: { fontFamily: f.medium, fontSize: 11, color: c.mint700 },
+    radio: {
+      width: 20,
+      height: 20,
+      borderRadius: radius.pill,
+      borderWidth: hairline,
+      borderColor: c.soft,
+      backgroundColor: c.paper,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    radioChecked: { borderColor: c.mint700 },
+    radioDot: { width: 10, height: 10, borderRadius: radius.pill, backgroundColor: c.mint700 },
+    sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    sheetTitle: { flex: 1, fontFamily: f.semibold, fontSize: 16, lineHeight: 23, color: c.ink },
+    close: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+    sheetContent: { gap: 14, paddingBottom: 8 },
+    input: { minHeight: 44 },
+    back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    otherBank: {
+      minHeight: 64,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      padding: 12,
+      borderRadius: radius.md,
+      borderWidth: hairline,
+      borderColor: c.line,
+      backgroundColor: c.wash,
+    },
+    bankRow: {
+      minHeight: 50,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      marginBottom: 4,
+      borderRadius: radius.sm,
+      borderWidth: hairline,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+    },
+    bankName: { fontFamily: f.medium, fontSize: 13, color: c.ink },
+    noResults: { fontFamily: f.regular, fontSize: 12, lineHeight: 19, color: c.muted, paddingVertical: 12 },
+    pressed: { opacity: 0.72 },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function usePaymentPickerTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

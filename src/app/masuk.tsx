@@ -1,11 +1,12 @@
 import { SPLASH_LOGO_HEIGHT, SPLASH_LOGO_WIDTH } from '@/components/brand-splash';
-import { WaveBackdrop } from '@/components/wave-backdrop';
 import { Button, Field, NoticeModal, type IconName } from '@/components/ui';
+import { WaveBackdrop } from '@/components/wave-backdrop';
 import { ApiError } from '@/lib/api';
 import { useAppVisible } from '@/lib/app-visibility';
 import { useAuth } from '@/lib/auth';
 import { providerErrorMessage, providerIdToken, type OAuthProviderName } from '@/lib/oauth';
-import { c, f, radius } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { dark, f, c as light, radius, type Colors } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -35,6 +36,7 @@ const OAUTH_PROVIDERS: { name: OAuthProviderName; icon: IconName }[] = [
 ];
 
 export default function LoginScreen() {
+  const { c, styles } = useSignInTheme();
   const { login, loginWithFirebase } = useAuth();
   const appVisible = useAppVisible();
   const { height } = useWindowDimensions();
@@ -211,14 +213,14 @@ export default function LoginScreen() {
                 loading={loading}
                 disabled={oauthLoading !== null}
               />
-              {/* <Pressable
-                onPress={() => router.push({ pathname: '/lupa-password' })}
+              <Pressable
+                onPress={() => router.push({ pathname: '/daftar' })}
                 hitSlop={10}
                 accessibilityRole="link"
-                style={({ pressed }) => [styles.forgot, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.btnregister, pressed && styles.pressed]}
               >
-                <Text style={styles.forgotText}>Belum Punya Akun?</Text>
-              </Pressable> */}
+                <Text style={styles.btnregistertext}>Daftar akun Baru!</Text>
+              </Pressable>
             </View>
 
             <View style={styles.oauth}>
@@ -307,148 +309,177 @@ function oauthError(error: unknown, provider: OAuthProviderName): string {
   return `Tidak dapat masuk dengan ${provider}. Coba lagi.`;
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: c.mint700,
-    overflow: 'hidden',
-  },
-  flex: {
-    flex: 1,
-  },
-  topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingBottom: 6,
-  },
-  topBarLabel: {
-    fontFamily: f.medium,
-    fontSize: 11,
-    color: c.mint100,
-  },
-  topBarAction: {
-    height: 36,
-    paddingHorizontal: 16,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: c.mint200,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topBarActionText: {
-    fontFamily: f.semibold,
-    fontSize: 11,
-    color: c.paper,
-  },
-  waveLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-  },
-  logoWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  logo: {
-    width: SPLASH_LOGO_WIDTH,
-    height: SPLASH_LOGO_HEIGHT,
-  },
-  card: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: c.paper,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    shadowColor: '#0A2A20',
-    shadowOpacity: 0.22,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: -10 },
-    elevation: 24,
-  },
-  cardContent: {
-    paddingHorizontal: 24,
-    paddingTop: 26,
-  },
-  title: {
-    fontFamily: f.bold,
-    fontSize: 25,
-    lineHeight: 31,
-    letterSpacing: -0.7,
-    color: '#0A2A20',
-  },
-  stitle: {
-    fontFamily: f.semibold,
-    fontSize: 15,
-    lineHeight: 17,
-    letterSpacing: -0.7,
-    color: c.ink,
-  },
-  form: {
-    marginTop: 22,
-    gap: 14,
-  },
-  forgot: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 6
-  },
-  forgotText: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.mint700,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  createAkun: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 6,
-  },
-  oauth: {
-    marginTop: 28,
-    gap: 12,
-  },
-  oauthRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  oauthButton: {
-    flex: 1,
-    minHeight: 52,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  oauthDisabled: {
-    opacity: 0.5,
-  },
-  orUse: {
-    alignSelf: 'center',
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.muted,
-  },
-  courtesy: {
-    marginTop: 120,
-    alignSelf: 'center',
-  },
-  courtesyText: {
-    fontFamily: f.bold,
-    fontSize: 8,
-    color: '#9c9d9d'
-  }
-});
+function buildStyles(c: Colors) {
+  const isDark = c === dark;
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: isDark ? c.mint100 : c.mint700,
+      overflow: 'hidden',
+    },
+    flex: {
+      flex: 1,
+    },
+    topBar: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 10,
+      paddingHorizontal: 20,
+      paddingBottom: 6,
+    },
+    topBarLabel: {
+      fontFamily: f.medium,
+      fontSize: 11,
+      color: c.mint100,
+    },
+    topBarAction: {
+      height: 36,
+      paddingHorizontal: 16,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: c.mint200,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    topBarActionText: {
+      fontFamily: f.semibold,
+      fontSize: 11,
+      color: c.paper,
+    },
+    waveLayer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+    },
+    logoWrap: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+    },
+    logo: {
+      width: SPLASH_LOGO_WIDTH,
+      height: SPLASH_LOGO_HEIGHT,
+    },
+    card: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: c.paper,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      shadowColor: '#0A2A20',
+      shadowOpacity: 0.22,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: -10 },
+      elevation: 24,
+    },
+    cardContent: {
+      paddingHorizontal: 24,
+      paddingTop: 26,
+    },
+    title: {
+      fontFamily: f.bold,
+      fontSize: 25,
+      lineHeight: 31,
+      letterSpacing: -0.7,
+      color: c.ink,
+    },
+    stitle: {
+      fontFamily: f.semibold,
+      fontSize: 15,
+      lineHeight: 17,
+      letterSpacing: -0.7,
+      color: c.ink,
+    },
+    form: {
+      marginTop: 22,
+      gap: 14,
+    },
+    forgot: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 6
+    },
+    forgotText: {
+      fontFamily: f.medium,
+      fontSize: 12,
+      color: c.mint700,
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+    createAkun: {
+      alignSelf: 'flex-end',
+      paddingHorizontal: 6,
+    },
+    oauth: {
+      marginTop: 28,
+      gap: 12,
+    },
+    oauthRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    oauthButton: {
+      flex: 1,
+      minHeight: 52,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    oauthDisabled: {
+      opacity: 0.5,
+    },
+    orUse: {
+      alignSelf: 'center',
+      fontFamily: f.medium,
+      fontSize: 12,
+      color: c.muted,
+    },
+    courtesy: {
+      marginTop: 120,
+      alignSelf: 'center',
+    },
+    courtesyText: {
+      fontFamily: f.bold,
+      fontSize: 8,
+      color: '#9c9d9d'
+    },
+    btnregister: {
+      color: '#fffff',
+      borderColor: '#0A2A20',
+      borderWidth: 1,
+      padding: 5,
+      alignSelf: 'center',
+      width: 345,
+      height: 45,
+      borderRadius: 10
+    },
+    btnregistertext: {
+      alignSelf: 'center',
+      paddingTop: 7.5,
+      color: '#0A2A20',
+      fontWeight: 'bold'
+    }
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useSignInTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

@@ -1,9 +1,11 @@
+import { LightSwitchCard } from '@/components/light-switch';
 import { Avatar, Stars } from '@/components/ui';
 import { EVENT_TYPE_LABEL, listEvents, listReviews, type Event, type Review } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatShortDate, initials, wibDayKey, wibStartOfDayIso } from '@/lib/format';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
 import { useQuery } from '@/lib/use-query';
-import { c, f } from '@/theme';
+import { c as light, dark, f, type Colors } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -106,6 +108,7 @@ function relativeDay(date: Date): string {
 /* -------------------------------------------------------------------------- */
 
 function Poster({ uri, style }: { uri: string | null; style: StyleProp<ImageStyle> }) {
+  const { c, styles } = useHomeTheme();
   if (!uri) {
     return (
       <View style={[style as StyleProp<ViewStyle>, styles.posterFallback]}>
@@ -125,6 +128,7 @@ function Poster({ uri, style }: { uri: string | null; style: StyleProp<ImageStyl
 }
 
 function DateBlock({ date }: { date: Date | null }) {
+  const { styles } = useHomeTheme();
   if (!date) return null;
   return (
     <View style={styles.dateBlock}>
@@ -135,6 +139,7 @@ function DateBlock({ date }: { date: Date | null }) {
 }
 
 function GoingStack({ names, count }: { names: string[]; count: number }) {
+  const { styles } = useHomeTheme();
   if (count <= 0) return null;
   return (
     <View style={styles.going} accessibilityLabel={`${count} orang akan hadir`}>
@@ -162,6 +167,7 @@ function EventCard({
   width: number;
   onPress: () => void;
 }) {
+  const { c, styles } = useHomeTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -197,6 +203,7 @@ function EventCard({
 }
 
 function EventRow({ item, onPress }: { item: EventItem; onPress: () => void }) {
+  const { c, styles } = useHomeTheme();
   const price = fmtPrice(item.priceFrom);
   return (
     <Pressable
@@ -249,6 +256,7 @@ function SpotlightSlide({
   width: number;
   onPress: () => void;
 }) {
+  const { styles } = useHomeTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -274,7 +282,7 @@ function SpotlightSlide({
           {item.title}
         </Text>
         <View style={styles.slideMeta}>
-          <Ionicons name="calendar-outline" size={13} color={c.paper} />
+          <Ionicons name="calendar-outline" size={13} color="#FFFFFF" />
           <Text style={styles.slideMetaText}>
             {item.startsAt
               ? fmtDate(item.startsAt, { weekday: 'short', day: 'numeric', month: 'short' })
@@ -282,7 +290,7 @@ function SpotlightSlide({
           </Text>
           {item.city ? (
             <>
-              <Ionicons name="location-outline" size={13} color={c.paper} />
+              <Ionicons name="location-outline" size={13} color="#FFFFFF" />
               <Text style={[styles.slideMetaText, styles.slideMetaCity]} numberOfLines={1}>
                 {item.city}
               </Text>
@@ -290,13 +298,17 @@ function SpotlightSlide({
           ) : null}
         </View>
         <View style={styles.slideFooter}>
-          <View>
-            <Text style={styles.slidePriceLabel}>Mulai dari</Text>
-            <Text style={styles.slidePrice}>{fmtPrice(item.priceFrom) ?? 'Cek detail'}</Text>
+          <View style={styles.slidePriceBox}>
+            <Text style={styles.slidePriceLabel} numberOfLines={1}>
+              Mulai dari
+            </Text>
+            <Text style={styles.slidePrice} numberOfLines={1}>
+              {fmtPrice(item.priceFrom) ?? 'Cek detail'}
+            </Text>
           </View>
           <View style={styles.slideCta}>
             <Text style={styles.slideCtaText}>Lihat event</Text>
-            <Ionicons name="arrow-forward" size={14} color={c.mint700} />
+            <Ionicons name="arrow-forward" size={14} color={light.mint700} />
           </View>
         </View>
       </View>
@@ -313,6 +325,7 @@ function SpotlightCarousel({
   width: number;
   onOpen: (slug: string) => void;
 }) {
+  const { styles } = useHomeTheme();
   const listRef = useRef<FlatList<EventItem>>(null);
   const indexRef = useRef(0);
   const [index, setIndex] = useState(0);
@@ -371,7 +384,7 @@ function SpotlightCarousel({
             accessibilityLabel={paused ? 'Putar carousel otomatis' : 'Jeda carousel otomatis'}
             style={({ pressed }) => [styles.pauseBtn, pressed && styles.pressed]}
           >
-            <Ionicons name={paused ? 'play' : 'pause'} size={16} color={c.mint700} />
+            <Ionicons name={paused ? 'play' : 'pause'} size={16} color={light.mint700} />
           </Pressable>
         )}
       </View>
@@ -407,6 +420,7 @@ function CityCard({
   active: boolean;
   onPress: () => void;
 }) {
+  const { c, styles } = useHomeTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -425,6 +439,7 @@ function CityCard({
 }
 
 function ReviewSnippet({ review, onEventPress }: { review: Review; onEventPress: () => void }) {
+  const { styles } = useHomeTheme();
   return (
     <View style={styles.reviewCard}>
       <View style={styles.reviewTop}>
@@ -452,6 +467,7 @@ function ReviewSnippet({ review, onEventPress }: { review: Review; onEventPress:
 }
 
 function Pulse({ style }: { style: StyleProp<ViewStyle> }) {
+  const { styles } = useHomeTheme();
   const [opacity] = useState(() => new Animated.Value(0.5));
   useEffect(() => {
     const loop = Animated.loop(
@@ -475,6 +491,7 @@ function Pulse({ style }: { style: StyleProp<ViewStyle> }) {
 }
 
 function CardSkeleton({ width }: { width: number }) {
+  const { styles } = useHomeTheme();
   return (
     <View style={[styles.card, { width }]}>
       <Pulse style={styles.cardPoster} />
@@ -495,6 +512,7 @@ function Message({
   action?: string;
   onAction?: () => void;
 }) {
+  const { styles } = useHomeTheme();
   return (
     <View style={styles.message}>
       <Text style={styles.messageTitle}>{title}</Text>
@@ -509,6 +527,7 @@ function Message({
 }
 
 function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
+  const { styles } = useHomeTheme();
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -526,6 +545,7 @@ function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => vo
 /* -------------------------------------------------------------------------- */
 
 export default function HomeScreen() {
+  const { mode, c, styles } = useHomeTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -630,7 +650,11 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Image
-          source={require('../../../assets/images/logo-ink.png')}
+          source={
+            mode === 'dark'
+              ? require('../../../assets/images/splash-logo-light.png')
+              : require('../../../assets/images/logo-ink.png')
+          }
           style={styles.logo}
           contentFit="contain"
           accessibilityLabel="Fayrly"
@@ -666,7 +690,7 @@ export default function HomeScreen() {
             value={query}
             onChangeText={setQuery}
             placeholder="Cari event atau venue"
-            placeholderTextColor="#7E8D88"
+            placeholderTextColor={c.soft}
             returnKeyType="search"
             autoCorrect={false}
             accessibilityLabel="Cari event atau venue"
@@ -862,6 +886,8 @@ export default function HomeScreen() {
             </ScrollView>
           </>
         )}
+
+        <LightSwitchCard />
       </ScrollView>
     </View>
   );
@@ -871,296 +897,311 @@ export default function HomeScreen() {
 /*  Styles                                                                    */
 /* -------------------------------------------------------------------------- */
 
-const shadow = {
-  shadowColor: '#0F3D2E',
-  shadowOpacity: 0.07,
-  shadowRadius: 14,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 3,
-} as const;
+function buildStyles(c: Colors) {
+  const isDark = c === dark;
+  const shadow = {
+    shadowColor: isDark ? '#000000' : '#0F3D2E',
+    shadowOpacity: isDark ? 0.4 : 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  } as const;
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: c.canvas },
-  pressed: { opacity: 0.85 },
-  content: { paddingTop: 8, paddingBottom: 24 },
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    screen: { flex: 1, backgroundColor: c.canvas },
+    pressed: { opacity: 0.85 },
+    content: { paddingTop: 8, paddingBottom: 24 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: c.canvas,
-  },
-  logo: { width: 82, height: 30 },
-  userBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: c.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadow,
-  },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+      backgroundColor: c.canvas,
+    },
+    logo: { width: 82, height: 30 },
+    userBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 16,
+      backgroundColor: c.paper,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadow,
+    },
 
-  searchWrap: { marginTop: 20, marginHorizontal: 20, justifyContent: 'center' },
-  searchIcon: { position: 'absolute', left: 16, zIndex: 1 },
-  search: {
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: c.paper,
-    paddingLeft: 46,
-    paddingRight: 16,
-    fontFamily: f.regular,
-    fontSize: 14,
-    color: c.ink,
-    ...shadow,
-  },
+    searchWrap: { marginTop: 20, marginHorizontal: 20, justifyContent: 'center' },
+    searchIcon: { position: 'absolute', left: 16, zIndex: 1 },
+    search: {
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: c.paper,
+      paddingLeft: 46,
+      paddingRight: 16,
+      fontFamily: f.regular,
+      fontSize: 14,
+      color: c.ink,
+      ...shadow,
+    },
 
-  chips: { paddingHorizontal: 20, paddingVertical: 18, gap: 10 },
-  chip: {
-    minHeight: 44,
-    paddingHorizontal: 18,
-    borderRadius: 16,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipActive: { backgroundColor: c.mint700, borderColor: c.mint700 },
-  chipText: { fontFamily: f.medium, fontSize: 14, color: c.ink },
-  chipTextActive: { color: c.paper },
+    chips: { paddingHorizontal: 20, paddingVertical: 18, gap: 10 },
+    chip: {
+      minHeight: 44,
+      paddingHorizontal: 18,
+      borderRadius: 16,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chipActive: { backgroundColor: c.mint700, borderColor: c.mint700 },
+    chipText: { fontFamily: f.medium, fontSize: 14, color: c.ink },
+    chipTextActive: { color: c.paper },
 
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 14,
-  },
-  sectionTitle: { fontFamily: f.semibold, fontSize: 18, color: c.ink },
-  seeAll: { fontFamily: f.medium, fontSize: 13, color: c.mint700 },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      marginTop: 8,
+      marginBottom: 14,
+    },
+    sectionTitle: { fontFamily: f.semibold, fontSize: 18, color: c.ink },
+    seeAll: { fontFamily: f.medium, fontSize: 13, color: c.mint700 },
 
-  carousel: { paddingHorizontal: 20, paddingBottom: 20 },
-  card: { backgroundColor: c.paper, borderRadius: 24, padding: 12, ...shadow },
-  cardPoster: { width: '100%', aspectRatio: 16 / 10, borderRadius: 16 },
-  posterFallback: { backgroundColor: c.mint50, alignItems: 'center', justifyContent: 'center' },
-  pulse: { backgroundColor: c.mint50 },
-  skeletonTitle: { height: 18, borderRadius: 8, marginTop: 14, width: '80%' },
-  skeletonMeta: { height: 14, borderRadius: 8, marginTop: 10, width: '55%' },
-  badge: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: c.paper,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: { fontFamily: f.semibold, fontSize: 12, color: c.mint700 },
-  cardBody: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
-  dateBlock: {
-    width: 48,
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: c.mint100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dateDay: { fontFamily: f.bold, fontSize: 17, color: c.ink, lineHeight: 22 },
-  dateMonth: { fontFamily: f.medium, fontSize: 12, color: c.mint700, lineHeight: 16 },
-  cardTitle: { flex: 1, fontFamily: f.semibold, fontSize: 15, lineHeight: 22, color: c.ink },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  metaText: { flex: 1, fontFamily: f.regular, fontSize: 13, color: c.muted },
-  going: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
-  goingAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: c.paper,
-    backgroundColor: c.mint100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  goingInitials: { fontFamily: f.semibold, fontSize: 9, color: c.mint700 },
-  goingText: { fontFamily: f.medium, fontSize: 13, color: c.mint700 },
-  goingTextSpaced: { marginLeft: 8 },
+    carousel: { paddingHorizontal: 20, paddingBottom: 20 },
+    card: { backgroundColor: c.paper, borderRadius: 24, padding: 12, ...shadow },
+    cardPoster: { width: '100%', aspectRatio: 16 / 10, borderRadius: 16 },
+    posterFallback: { backgroundColor: c.mint50, alignItems: 'center', justifyContent: 'center' },
+    pulse: { backgroundColor: c.mint50 },
+    skeletonTitle: { height: 18, borderRadius: 8, marginTop: 14, width: '80%' },
+    skeletonMeta: { height: 14, borderRadius: 8, marginTop: 10, width: '55%' },
+    badge: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      backgroundColor: c.paper,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    badgeText: { fontFamily: f.semibold, fontSize: 12, color: c.mint700 },
+    cardBody: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
+    dateBlock: {
+      width: 48,
+      height: 54,
+      borderRadius: 14,
+      backgroundColor: c.mint100,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dateDay: { fontFamily: f.bold, fontSize: 17, color: c.ink, lineHeight: 22 },
+    dateMonth: { fontFamily: f.medium, fontSize: 12, color: c.mint700, lineHeight: 16 },
+    cardTitle: { flex: 1, fontFamily: f.semibold, fontSize: 15, lineHeight: 22, color: c.ink },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+    metaText: { flex: 1, fontFamily: f.regular, fontSize: 13, color: c.muted },
+    going: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
+    goingAvatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      borderWidth: 2,
+      borderColor: c.paper,
+      backgroundColor: c.mint100,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    goingInitials: { fontFamily: f.semibold, fontSize: 9, color: c.mint700 },
+    goingText: { fontFamily: f.medium, fontSize: 13, color: c.mint700 },
+    goingTextSpaced: { marginLeft: 8 },
 
-  spotlightSection: { alignItems: 'center', marginBottom: 8 },
-  spotlight: { alignItems: 'center' },
-  spotlightFrame: {
-    height: SPOTLIGHT_HEIGHT,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: c.mint50,
-    ...shadow,
-  },
-  slide: { height: SPOTLIGHT_HEIGHT, padding: 16, justifyContent: 'space-between' },
-  slidePoster: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
-  slideScrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(18,38,31,0.55)',
-  },
-  slideTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  slideBadge: {
-    backgroundColor: c.mint100,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  slideBadgeText: { fontFamily: f.semibold, fontSize: 11, color: c.mint700 },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: c.crimson,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.paper },
-  liveText: { fontFamily: f.semibold, fontSize: 11, color: c.paper },
-  slideBottom: { gap: 8 },
-  slideTitle: {
-    fontFamily: f.bold,
-    fontSize: 20,
-    lineHeight: 26,
-    letterSpacing: -0.4,
-    color: c.paper,
-  },
-  slideMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  slideMetaText: { fontFamily: f.regular, fontSize: 12, color: 'rgba(255,255,255,0.92)' },
-  slideMetaCity: { flexShrink: 1 },
-  slideFooter: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 2,
-  },
-  slidePriceLabel: { fontFamily: f.regular, fontSize: 10, color: 'rgba(255,255,255,0.75)' },
-  slidePrice: { fontFamily: f.semibold, fontSize: 16, color: c.paper },
-  slideCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: c.paper,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  slideCtaText: { fontFamily: f.semibold, fontSize: 12, color: c.mint700 },
-  pauseBtn: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12 },
-  dotHit: { padding: 4 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.mint200 },
-  dotActive: { width: 18, backgroundColor: c.mint700 },
+    spotlightSection: { alignItems: 'center', marginBottom: 8 },
+    spotlight: { alignItems: 'center' },
+    spotlightFrame: {
+      height: SPOTLIGHT_HEIGHT,
+      borderRadius: 24,
+      overflow: 'hidden',
+      backgroundColor: c.mint50,
+      ...shadow,
+    },
+    slide: { height: SPOTLIGHT_HEIGHT, padding: 16, justifyContent: 'space-between' },
+    slidePoster: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+    slideScrim: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(18,38,31,0.55)',
+    },
+    slideTop: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 44 },
+    slideBadge: {
+      backgroundColor: c.mint100,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    slideBadgeText: { fontFamily: f.semibold, fontSize: 11, color: c.mint700 },
+    liveBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: c.crimson,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFFFFF' },
+    liveText: { fontFamily: f.semibold, fontSize: 11, color: '#FFFFFF' },
+    slideBottom: { gap: 8 },
+    slideTitle: {
+      fontFamily: f.bold,
+      fontSize: 20,
+      lineHeight: 26,
+      letterSpacing: -0.4,
+      color: '#FFFFFF',
+    },
+    slideMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    slideMetaText: { fontFamily: f.regular, fontSize: 12, color: 'rgba(255,255,255,0.92)' },
+    slideMetaCity: { flexShrink: 1 },
+    slideFooter: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginTop: 2,
+    },
+    slidePriceBox: { flexShrink: 1 },
+    slidePriceLabel: { fontFamily: f.regular, fontSize: 10, color: 'rgba(255,255,255,0.75)' },
+    slidePrice: { fontFamily: f.semibold, fontSize: 16, color: '#FFFFFF' },
+    slideCta: {
+      flexShrink: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    slideCtaText: { fontFamily: f.semibold, fontSize: 12, color: light.mint700 },
+    pauseBtn: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.92)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12 },
+    dotHit: { padding: 4 },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.mint200 },
+    dotActive: { width: 18, backgroundColor: c.mint700 },
 
-  list: { paddingHorizontal: 20, gap: 12 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: c.paper,
-    borderRadius: 20,
-    padding: 12,
-    ...shadow,
-  },
-  rowPoster: { width: 84, height: 84, borderRadius: 16 },
-  rowBody: { flex: 1, gap: 4 },
-  rowTitle: { fontFamily: f.semibold, fontSize: 14, lineHeight: 20, color: c.ink },
-  rowMeta: { fontFamily: f.regular, fontSize: 12, color: c.muted },
-  rowVenue: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rowVenueText: { flex: 1, fontFamily: f.regular, fontSize: 11, color: c.soft },
-  rowFooter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
-  rowPrice: { fontFamily: f.semibold, fontSize: 13, color: c.crimson },
-  rowPriceFree: { color: c.mint700 },
-  rowRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: c.wash,
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  rowRatingText: { fontFamily: f.medium, fontSize: 11, color: c.muted },
+    list: { paddingHorizontal: 20, gap: 12 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      backgroundColor: c.paper,
+      borderRadius: 20,
+      padding: 12,
+      ...shadow,
+    },
+    rowPoster: { width: 84, height: 84, borderRadius: 16 },
+    rowBody: { flex: 1, gap: 4 },
+    rowTitle: { fontFamily: f.semibold, fontSize: 14, lineHeight: 20, color: c.ink },
+    rowMeta: { fontFamily: f.regular, fontSize: 12, color: c.muted },
+    rowVenue: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    rowVenueText: { flex: 1, fontFamily: f.regular, fontSize: 11, color: c.soft },
+    rowFooter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
+    rowPrice: { fontFamily: f.semibold, fontSize: 13, color: c.crimson },
+    rowPriceFree: { color: c.mint700 },
+    rowRating: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: c.wash,
+      borderRadius: 8,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+    },
+    rowRatingText: { fontFamily: f.medium, fontSize: 11, color: c.muted },
 
-  cityRow: { paddingHorizontal: 20, gap: 12, paddingBottom: 8 },
-  cityCard: {
-    width: 150,
-    padding: 14,
-    borderRadius: 18,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-    gap: 6,
-    ...shadow,
-  },
-  cityCardActive: { backgroundColor: c.mint700, borderColor: c.mint700 },
-  cityName: { fontFamily: f.semibold, fontSize: 14, color: c.ink },
-  cityNameActive: { color: c.paper },
-  cityCount: { fontFamily: f.regular, fontSize: 11, color: c.muted },
-  cityCountActive: { color: c.mint100 },
+    cityRow: { paddingHorizontal: 20, gap: 12, paddingBottom: 8 },
+    cityCard: {
+      width: 150,
+      padding: 14,
+      borderRadius: 18,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+      gap: 6,
+      ...shadow,
+    },
+    cityCardActive: { backgroundColor: c.mint700, borderColor: c.mint700 },
+    cityName: { fontFamily: f.semibold, fontSize: 14, color: c.ink },
+    cityNameActive: { color: c.paper },
+    cityCount: { fontFamily: f.regular, fontSize: 11, color: c.muted },
+    cityCountActive: { color: c.mint100 },
 
-  reviewRow: { paddingHorizontal: 20, gap: 12, paddingBottom: 8 },
-  reviewCard: {
-    width: 280,
-    backgroundColor: c.paper,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: c.line,
-    padding: 16,
-    gap: 10,
-    ...shadow,
-  },
-  reviewTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  reviewDate: { fontFamily: f.regular, fontSize: 10, color: c.soft },
-  reviewBody: { fontFamily: f.regular, fontSize: 13, lineHeight: 20, color: c.ink },
-  reviewFooter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
-  reviewWho: { flex: 1 },
-  reviewName: { fontFamily: f.semibold, fontSize: 12, color: c.ink },
-  reviewEvent: { fontFamily: f.regular, fontSize: 11, color: c.mint700 },
-  reviewSkeleton: { width: 280, height: 170, borderRadius: 20 },
+    reviewRow: { paddingHorizontal: 20, gap: 12, paddingBottom: 8 },
+    reviewCard: {
+      width: 280,
+      backgroundColor: c.paper,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.line,
+      padding: 16,
+      gap: 10,
+      ...shadow,
+    },
+    reviewTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    reviewDate: { fontFamily: f.regular, fontSize: 10, color: c.soft },
+    reviewBody: { fontFamily: f.regular, fontSize: 13, lineHeight: 20, color: c.ink },
+    reviewFooter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 },
+    reviewWho: { flex: 1 },
+    reviewName: { fontFamily: f.semibold, fontSize: 12, color: c.ink },
+    reviewEvent: { fontFamily: f.regular, fontSize: 11, color: c.mint700 },
+    reviewSkeleton: { width: 280, height: 170, borderRadius: 20 },
 
-  message: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 20,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-  },
-  messageTitle: { fontFamily: f.semibold, fontSize: 15, color: c.ink },
-  messageBody: { fontFamily: f.regular, fontSize: 13, lineHeight: 20, color: c.muted, marginTop: 6 },
-  messageBtn: {
-    alignSelf: 'flex-start',
-    minHeight: 44,
-    marginTop: 14,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    backgroundColor: c.mint700,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  messageBtnText: { fontFamily: f.semibold, fontSize: 14, color: c.paper },
-});
+    message: {
+      marginHorizontal: 20,
+      marginBottom: 20,
+      padding: 20,
+      borderRadius: 20,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+    },
+    messageTitle: { fontFamily: f.semibold, fontSize: 15, color: c.ink },
+    messageBody: { fontFamily: f.regular, fontSize: 13, lineHeight: 20, color: c.muted, marginTop: 6 },
+    messageBtn: {
+      alignSelf: 'flex-start',
+      minHeight: 44,
+      marginTop: 14,
+      paddingHorizontal: 18,
+      borderRadius: 14,
+      backgroundColor: c.mint700,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    messageBtnText: { fontFamily: f.semibold, fontSize: 14, color: c.paper },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useHomeTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

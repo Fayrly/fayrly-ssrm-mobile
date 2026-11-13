@@ -4,11 +4,13 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } f
 import { ReviewCard } from '@/components/review-card';
 import { Button, PageHeader, Screen, Skeleton, StateBlock } from '@/components/ui';
 import { errorMessage, listReviews, type Pagination, type Review } from '@/lib/api';
-import { c, f } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, dark, type Colors } from '@/theme';
 
 const PAGE_SIZE = 9;
 
 export default function ReviewsScreen() {
+  const { c, styles } = useReviewsTheme();
   const [items, setItems] = useState<Review[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,49 +170,61 @@ export default function ReviewsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  list: {
-    paddingBottom: 28,
-    flexGrow: 1,
-  },
-  summary: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 12,
-  },
-  summaryCount: {
-    fontFamily: f.semibold,
-    fontSize: 13,
-    color: c.ink,
-  },
-  summaryNote: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    color: c.soft,
-  },
-  skeletons: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    gap: 22,
-  },
-  skeletonRow: {
-    gap: 8,
-  },
-  footer: {
-    paddingTop: 16,
-    gap: 8,
-  },
-  moreError: {
-    alignItems: 'center',
-  },
-  moreErrorText: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.crimson,
-    textAlign: 'center',
-    paddingHorizontal: 24,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    list: {
+      paddingBottom: 28,
+      flexGrow: 1,
+    },
+    summary: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 4,
+      paddingBottom: 12,
+    },
+    summaryCount: {
+      fontFamily: f.semibold,
+      fontSize: 13,
+      color: c.ink,
+    },
+    summaryNote: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      color: c.soft,
+    },
+    skeletons: {
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      gap: 22,
+    },
+    skeletonRow: {
+      gap: 8,
+    },
+    footer: {
+      paddingTop: 16,
+      gap: 8,
+    },
+    moreError: {
+      alignItems: 'center',
+    },
+    moreErrorText: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      color: c.crimson,
+      textAlign: 'center',
+      paddingHorizontal: 24,
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useReviewsTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}

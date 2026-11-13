@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Skeleton } from '@/components/ui';
 import { useQuery } from '@/lib/use-query';
-import { c, f, radius } from '@/theme';
+import { useThemeMode, type ThemeMode } from '@/lib/theme-mode';
+import { c as light, f, radius, dark, type Colors } from '@/theme';
 
 const TILE = 256;
 const MAP_HEIGHT = 188;
@@ -107,6 +108,7 @@ export function VenueMap(props: VenueMapProps) {
 }
 
 function VenueMapView({ venueName, venueAddress, city, country }: VenueMapProps) {
+  const { c, styles } = useVenueMapTheme();
   const [width, setWidth] = useState(0);
 
   const name = venueName?.trim() ?? '';
@@ -237,6 +239,7 @@ function MapNotice({
   action?: string;
   onAction?: () => void;
 }) {
+  const { c, styles } = useVenueMapTheme();
   return (
     <View style={styles.wrap}>
       <View style={styles.notice}>
@@ -259,133 +262,145 @@ function MapNotice({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    marginHorizontal: 20,
-  },
-  card: {
-    height: MAP_HEIGHT,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.wash,
-    overflow: 'hidden',
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  tile: {
-    position: 'absolute',
-    width: TILE,
-    height: TILE,
-  },
-  pin: {
-    position: 'absolute',
-    left: '50%',
-    top: MAP_HEIGHT / 2 - PIN + 4,
-    marginLeft: -PIN / 2,
-  },
-  pinShadow: {
-    position: 'absolute',
-    left: '50%',
-    top: MAP_HEIGHT / 2 - 2,
-    width: 14,
-    height: 5,
-    marginLeft: -7,
-    borderRadius: 7,
-    backgroundColor: c.ink,
-    opacity: 0.25,
-  },
-  label: {
-    position: 'absolute',
-    left: 10,
-    bottom: 10,
-    maxWidth: '72%',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radius.sm,
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-  },
-  labelName: {
-    fontFamily: f.semibold,
-    fontSize: 12,
-    lineHeight: 17,
-    color: c.ink,
-  },
-  labelNote: {
-    fontFamily: f.regular,
-    fontSize: 10,
-    lineHeight: 14,
-    color: c.muted,
-  },
-  expand: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: c.paper,
-    borderWidth: 1,
-    borderColor: c.line,
-  },
-  attribution: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderTopLeftRadius: 6,
-    backgroundColor: c.paper,
-    opacity: 0.85,
-    fontFamily: f.regular,
-    fontSize: 9,
-    color: c.muted,
-  },
-  notice: {
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.paper,
-  },
-  noticeIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: c.mint50,
-    marginBottom: 4,
-  },
-  noticeTitle: {
-    fontFamily: f.semibold,
-    fontSize: 13,
-    color: c.ink,
-    textAlign: 'center',
-  },
-  noticeBody: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    lineHeight: 18,
-    color: c.muted,
-    textAlign: 'center',
-  },
-  noticeAction: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  noticeActionText: {
-    fontFamily: f.semibold,
-    fontSize: 12,
-    color: c.mint700,
-  },
-});
+function buildStyles(c: Colors) {
+  return StyleSheet.create({
+    wrap: {
+      marginHorizontal: 20,
+    },
+    card: {
+      height: MAP_HEIGHT,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.wash,
+      overflow: 'hidden',
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+    tile: {
+      position: 'absolute',
+      width: TILE,
+      height: TILE,
+    },
+    pin: {
+      position: 'absolute',
+      left: '50%',
+      top: MAP_HEIGHT / 2 - PIN + 4,
+      marginLeft: -PIN / 2,
+    },
+    pinShadow: {
+      position: 'absolute',
+      left: '50%',
+      top: MAP_HEIGHT / 2 - 2,
+      width: 14,
+      height: 5,
+      marginLeft: -7,
+      borderRadius: 7,
+      backgroundColor: c.ink,
+      opacity: 0.25,
+    },
+    label: {
+      position: 'absolute',
+      left: 10,
+      bottom: 10,
+      maxWidth: '72%',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: radius.sm,
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+    },
+    labelName: {
+      fontFamily: f.semibold,
+      fontSize: 12,
+      lineHeight: 17,
+      color: c.ink,
+    },
+    labelNote: {
+      fontFamily: f.regular,
+      fontSize: 10,
+      lineHeight: 14,
+      color: c.muted,
+    },
+    expand: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: c.paper,
+      borderWidth: 1,
+      borderColor: c.line,
+    },
+    attribution: {
+      position: 'absolute',
+      right: 0,
+      bottom: 0,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderTopLeftRadius: 6,
+      backgroundColor: c.paper,
+      opacity: 0.85,
+      fontFamily: f.regular,
+      fontSize: 9,
+      color: c.muted,
+    },
+    notice: {
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 24,
+      paddingHorizontal: 20,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: c.line,
+      backgroundColor: c.paper,
+    },
+    noticeIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: c.mint50,
+      marginBottom: 4,
+    },
+    noticeTitle: {
+      fontFamily: f.semibold,
+      fontSize: 13,
+      color: c.ink,
+      textAlign: 'center',
+    },
+    noticeBody: {
+      fontFamily: f.regular,
+      fontSize: 12,
+      lineHeight: 18,
+      color: c.muted,
+      textAlign: 'center',
+    },
+    noticeAction: {
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    noticeActionText: {
+      fontFamily: f.semibold,
+      fontSize: 12,
+      color: c.mint700,
+    },
+  });
+}
+
+const stylesByMode: Record<ThemeMode, ReturnType<typeof buildStyles>> = {
+  light: buildStyles(light),
+  dark: buildStyles(dark),
+};
+
+function useVenueMapTheme() {
+  const { mode, colors } = useThemeMode();
+  return { mode, c: colors, styles: stylesByMode[mode] };
+}
