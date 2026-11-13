@@ -1,7 +1,13 @@
+import { Avatar, Stars } from '@/components/ui';
+import { EVENT_TYPE_LABEL, listEvents, listReviews, type Event, type Review } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { formatShortDate, initials, wibDayKey, wibStartOfDayIso } from '@/lib/format';
+import { useQuery } from '@/lib/use-query';
+import { c, f } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   Animated,
   FlatList,
@@ -19,12 +25,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Stars } from '@/components/ui';
-import { EVENT_TYPE_LABEL, listEvents, listReviews, type Event, type Review } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
-import { formatShortDate, initials, wibDayKey, wibStartOfDayIso } from '@/lib/format';
-import { useQuery } from '@/lib/use-query';
-import { c, f } from '@/theme';
 
 /* -------------------------------------------------------------------------- */
 /*  Data                                                                      */
@@ -529,7 +529,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -699,7 +699,7 @@ export default function HomeScreen() {
           </ScrollView>
         )}
 
-        <SectionHeader title="Rekomendasi" onSeeAll={() => router.push('/jelajahi')} />
+        <SectionHeader title="Lagi rame nih, Liat deh!" onSeeAll={() => router.push('/jelajahi')} />
 
         {loading && (
           <ScrollView horizontal scrollEnabled={false} contentContainerStyle={styles.carousel}>
@@ -760,7 +760,6 @@ export default function HomeScreen() {
 
         {!loading && spotlight.length > 0 && (
           <View style={styles.spotlightSection}>
-            <SectionHeader title="Sorotan event" />
             <SpotlightCarousel
               key={spotlight.map((event) => event.id).join('|')}
               items={spotlight}

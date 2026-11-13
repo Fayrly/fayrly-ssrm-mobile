@@ -15,10 +15,10 @@ export default function TabsLayout() {
           borderTopColor: c.line,
           borderTopWidth: hairline,
           paddingTop: 8,
-          borderTopLeftRadius: 50,
-          borderTopRightRadius: 50,
+          borderTopLeftRadius: 27,
+          borderTopRightRadius: 27,
           shadowColor: c.mint200,
-          shadowOpacity: 0.5
+          shadowOpacity: 0.3
         },
         tabBarLabelStyle: {
           fontFamily: f.semibold,

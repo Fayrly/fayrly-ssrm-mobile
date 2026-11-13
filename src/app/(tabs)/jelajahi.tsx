@@ -1,6 +1,6 @@
 import { EVENT_TYPE_LABEL, listEvents, type Event } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { initials, wibStartOfDayIso } from '@/lib/format';
+import { initials } from '@/lib/format';
 import { useQuery } from '@/lib/use-query';
 import { c, f } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +31,8 @@ type EventItem = {
   title: string;
   category: string;
   startsAt: Date | null;
+  endsAt: Date | null;
+  ended: boolean;
   venue: string | null;
   posterUrl: string | null;
   goingCount: number;
@@ -42,20 +44,28 @@ type EventItem = {
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const NO_ITEMS: EventItem[] = [];
 
-function toItem(event: Event): EventItem {
+function toItem(event: Event, now: number): EventItem {
   const created = new Date(event.created_at).getTime();
+  const startsAt = event.starts_at ? new Date(event.starts_at) : null;
+  const endsAt = event.ends_at ? new Date(event.ends_at) : null;
+  const ended =
+    event.status === 'completed' ||
+    event.status === 'cancelled' ||
+    (endsAt ? endsAt.getTime() < now : startsAt ? startsAt.getTime() < now : false);
   return {
     id: event.id,
     slug: event.slug,
     title: event.title,
     category: EVENT_TYPE_LABEL[event.type] ?? 'Event',
-    startsAt: event.starts_at ? new Date(event.starts_at) : null,
+    startsAt,
+    endsAt,
+    ended,
     venue: [event.venue_name, event.city].filter(Boolean).join(', ') || null,
     posterUrl: event.cover_image_url || null,
     goingCount: Number(event.going_count ?? 0),
     goingNames: (event.going_names ?? []).slice(0, 3),
     priceFrom: event.price_min == null ? null : Number(event.price_min),
-    isNew: Number.isFinite(created) && Date.now() - created < WEEK_MS,
+    isNew: Number.isFinite(created) && now - created < WEEK_MS,
   };
 }
 
@@ -161,27 +171,42 @@ function EventCard({
   );
 }
 
-function EventRow({ item, onPress }: { item: EventItem; onPress: () => void }) {
+function EventRow({
+  item,
+  onPress,
+  ended,
+}: {
+  item: EventItem;
+  onPress: () => void;
+  ended?: boolean;
+}) {
   const price = fmtPrice(item.priceFrom);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={item.title}
+      accessibilityLabel={`${item.title}${ended ? ', sudah selesai' : ''}`}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <Poster uri={item.posterUrl} style={styles.rowPoster} />
+      <Poster uri={item.posterUrl} style={[styles.rowPoster, ended && styles.rowPosterEnded]} />
       <View style={styles.rowBody}>
-        <Text style={styles.rowTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
+        <View style={styles.rowHead}>
+          <Text style={[styles.rowTitle, ended && styles.rowTitleEnded]} numberOfLines={2}>
+            {item.title}
+          </Text>
+          {ended && (
+            <View style={styles.endedBadge}>
+              <Text style={styles.endedBadgeText}>Selesai</Text>
+            </View>
+          )}
+        </View>
         {item.startsAt && (
           <Text style={styles.rowMeta}>
             {fmtDate(item.startsAt, { day: 'numeric', month: 'short', year: '2-digit' })} ·{' '}
             {fmtTime(item.startsAt)}
           </Text>
         )}
-        {price && <Text style={styles.rowPrice}>{price}</Text>}
+        {price && <Text style={[styles.rowPrice, ended && styles.rowPriceEnded]}>{price}</Text>}
       </View>
     </Pressable>
   );
@@ -266,8 +291,9 @@ export default function HomeScreen() {
   const [category, setCategory] = useState<string | null>(null);
 
   const eventsQuery = useQuery(async () => {
-    const payload = await listEvents({ from: wibStartOfDayIso(new Date()), pageSize: 20 });
-    return payload.data.map(toItem);
+    const payload = await listEvents({ pageSize: 50 });
+    const now = Date.now();
+    return payload.data.map((event) => toItem(event, now));
   }, []);
 
   const items = eventsQuery.data ?? NO_ITEMS;
@@ -291,15 +317,20 @@ export default function HomeScreen() {
     );
   }, [items, query, category]);
 
-  const recommended = useMemo(() => filtered.slice(0, 6), [filtered]);
+  const { active, past } = useMemo(() => {
+    const live: EventItem[] = [];
+    const done: EventItem[] = [];
+    for (const event of filtered) {
+      (event.ended ? done : live).push(event);
+    }
+    live.sort((a, b) => (a.startsAt?.getTime() ?? 0) - (b.startsAt?.getTime() ?? 0));
+    done.sort((a, b) => (b.startsAt?.getTime() ?? 0) - (a.startsAt?.getTime() ?? 0));
+    return { active: live, past: done };
+  }, [filtered]);
 
-  const upcoming = useMemo(() => {
-    const shown = new Set(recommended.map((event) => event.id));
-    return filtered
-      .filter((event) => event.startsAt && !shown.has(event.id))
-      .sort((a, b) => a.startsAt!.getTime() - b.startsAt!.getTime())
-      .slice(0, 8);
-  }, [filtered, recommended]);
+  const recommended = useMemo(() => active.slice(0, 6), [active]);
+  const upcoming = useMemo(() => active.slice(6, 14), [active]);
+  const pastEvents = useMemo(() => past.slice(0, 8), [past]);
 
   const openEvent = (slug: string) =>
     router.push({ pathname: '/events/[slug]', params: { slug } });
@@ -354,6 +385,42 @@ export default function HomeScreen() {
             style={styles.search}
           />
         </View>
+
+        {!loading && categories.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chips}
+          >
+            <Pressable
+              onPress={() => setCategory(null)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: category === null }}
+              style={({ pressed }) => [
+                styles.chip,
+                category === null && styles.chipActive,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.chipText, category === null && styles.chipTextActive]}>Semua</Text>
+            </Pressable>
+            {categories.map((cat) => (
+              <Pressable
+                key={cat}
+                onPress={() => setCategory((current) => (current === cat ? null : cat))}
+                accessibilityRole="button"
+                accessibilityState={{ selected: category === cat }}
+                style={({ pressed }) => [
+                  styles.chip,
+                  category === cat && styles.chipActive,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.chipText, category === cat && styles.chipTextActive]}>{cat}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
 
         {loading && (
           <ScrollView horizontal scrollEnabled={false} contentContainerStyle={styles.carousel}>
@@ -411,6 +478,17 @@ export default function HomeScreen() {
             <View style={styles.list}>
               {upcoming.map((event) => (
                 <EventRow key={event.id} item={event} onPress={() => openEvent(event.slug)} />
+              ))}
+            </View>
+          </>
+        )}
+
+        {!loading && pastEvents.length > 0 && (
+          <>
+            <SectionHeader title="Sudah berlangsung" />
+            <View style={styles.list}>
+              {pastEvents.map((event) => (
+                <EventRow key={event.id} item={event} ended onPress={() => openEvent(event.slug)} />
               ))}
             </View>
           </>
@@ -553,10 +631,21 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   rowPoster: { width: 78, height: 78, borderRadius: 14 },
+  rowPosterEnded: { opacity: 0.55 },
   rowBody: { flex: 1, justifyContent: 'center' },
-  rowTitle: { fontFamily: f.semibold, fontSize: 14, lineHeight: 20, color: c.ink },
+  rowHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  rowTitle: { flex: 1, fontFamily: f.semibold, fontSize: 14, lineHeight: 20, color: c.ink },
+  rowTitleEnded: { color: c.muted },
   rowMeta: { fontFamily: f.regular, fontSize: 12, color: c.muted, marginTop: 4 },
   rowPrice: { fontFamily: f.semibold, fontSize: 13, color: c.crimson, marginTop: 4 },
+  rowPriceEnded: { color: c.soft },
+  endedBadge: {
+    backgroundColor: c.wash,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  endedBadgeText: { fontFamily: f.medium, fontSize: 10, color: c.muted },
 
   message: {
     marginHorizontal: 20,
