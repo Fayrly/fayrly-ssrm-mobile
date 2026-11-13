@@ -25,10 +25,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/* -------------------------------------------------------------------------- */
-/*  Data                                                                      */
-/* -------------------------------------------------------------------------- */
-
 type EventItem = {
   id: string;
   slug: string;
@@ -63,10 +59,6 @@ function toItem(event: Event): EventItem {
   };
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Format id-ID / WIB                                                        */
-/* -------------------------------------------------------------------------- */
-
 const TZ = 'Asia/Jakarta';
 
 const fmtDate = (d: Date, o: Intl.DateTimeFormatOptions) =>
@@ -77,10 +69,6 @@ const fmtTime = (d: Date) =>
 
 const fmtPrice = (n: number | null) =>
   n == null ? null : n === 0 ? 'Gratis' : `Rp${n.toLocaleString('id-ID')}`;
-
-/* -------------------------------------------------------------------------- */
-/*  Small pieces                                                              */
-/* -------------------------------------------------------------------------- */
 
 function Poster({ uri, style }: { uri: string | null; style: StyleProp<ImageStyle> }) {
   if (!uri) {
@@ -269,10 +257,6 @@ function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => vo
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Screen                                                                    */
-/* -------------------------------------------------------------------------- */
-
 export default function HomeScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -370,33 +354,6 @@ export default function HomeScreen() {
             style={styles.search}
           />
         </View>
-
-        {categories.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chips}
-          >
-            {[null, ...categories].map((cat) => {
-              const active = category === cat;
-              return (
-                <Pressable
-                  key={cat ?? 'semua'}
-                  onPress={() => setCategory(cat)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  style={[styles.chip, active && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                    {cat ?? 'Semua'}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
-
-        <SectionHeader title="Rekomendasi" onSeeAll={() => router.push('/jelajahi')} />
 
         {loading && (
           <ScrollView horizontal scrollEnabled={false} contentContainerStyle={styles.carousel}>
@@ -500,7 +457,7 @@ const styles = StyleSheet.create({
     ...shadow,
   },
 
-  searchWrap: { marginTop: 20, marginHorizontal: 20, justifyContent: 'center' },
+  searchWrap: { marginTop: 20, marginHorizontal: 20, justifyContent: 'center', marginBottom: 20 },
   searchIcon: { position: 'absolute', left: 16, zIndex: 1 },
   search: {
     height: 52,

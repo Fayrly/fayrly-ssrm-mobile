@@ -1,11 +1,11 @@
+import { Avatar, Button, PageHeader, Screen, Sheet } from '@/components/ui';
+import { useAuth } from '@/lib/auth';
+import { c, f, hairline, radius } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Avatar, Button, PageHeader, Screen, Sheet } from '@/components/ui';
-import { useAuth } from '@/lib/auth';
-import { c, f, hairline, radius } from '@/theme';
 
 const ROLE_LABEL: Record<string, string> = {
   member: 'Peserta',

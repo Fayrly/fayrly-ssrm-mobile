@@ -14,7 +14,11 @@ export default function TabsLayout() {
           backgroundColor: c.paper,
           borderTopColor: c.line,
           borderTopWidth: hairline,
-          paddingTop: 6,
+          paddingTop: 8,
+          borderTopLeftRadius: 50,
+          borderTopRightRadius: 50,
+          shadowColor: c.mint200,
+          shadowOpacity: 0.5
         },
         tabBarLabelStyle: {
           fontFamily: f.semibold,
@@ -49,7 +53,7 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="ulasan"
         options={{
           title: 'Ulasan',
@@ -61,14 +65,14 @@ export default function TabsLayout() {
             />
           ),
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="akun"
         options={{
-          title: 'Akun',
+          title: 'Tiketku',
           tabBarIcon: ({ focused }) => (
             <Ionicons
-              name={focused ? 'person' : 'person-outline'}
+              name={focused ? 'ticket' : 'ticket-outline'}
               size={22}
               color={focused ? c.mint700 : c.soft}
             />
