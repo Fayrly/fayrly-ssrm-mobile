@@ -1,10 +1,16 @@
+import { EVENT_TYPE_LABEL, listEvents, type Event } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { initials, wibStartOfDayIso } from '@/lib/format';
+import { useQuery } from '@/lib/use-query';
+import { c, f } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
+  Animated,
   FlatList,
-  Keyboard,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,519 +18,609 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
+  type ImageStyle,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
-import { EventRow } from '@/components/event-row';
-import {
-  Button,
-  Chip,
-  PageHeader,
-  Screen,
-  Sheet,
-  Skeleton,
-  StateBlock,
-} from '@/components/ui';
-import {
-  EVENT_TYPE_LABEL,
-  errorMessage,
-  listEvents,
-  type Event,
-  type EventType,
-  type Pagination,
-} from '@/lib/api';
-import { wibStartOfDayIso } from '@/lib/format';
-import { useQuery } from '@/lib/use-query';
-import { c, f, hairline, radius } from '@/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type DateRange = '' | 'today' | '7d' | '30d';
+/* -------------------------------------------------------------------------- */
+/*  Data                                                                      */
+/* -------------------------------------------------------------------------- */
 
-const TYPE_OPTIONS: { value: EventType | ''; label: string }[] = [
-  { value: '', label: 'Semua' },
-  { value: 'concert', label: EVENT_TYPE_LABEL.concert },
-  { value: 'charity', label: EVENT_TYPE_LABEL.charity },
-  { value: 'community', label: EVENT_TYPE_LABEL.community },
-];
+type EventItem = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  startsAt: Date | null;
+  venue: string | null;
+  posterUrl: string | null;
+  goingCount: number;
+  goingNames: string[];
+  priceFrom: number | null;
+  isNew: boolean;
+};
 
-const DATE_OPTIONS: { value: DateRange; label: string }[] = [
-  { value: '', label: 'Semua tanggal' },
-  { value: 'today', label: 'Hari ini' },
-  { value: '7d', label: '7 hari' },
-  { value: '30d', label: '30 hari' },
-];
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const NO_ITEMS: EventItem[] = [];
 
-const PAGE_SIZE = 12;
-
-function dateRange(value: DateRange): { from?: string; to?: string } {
-  if (!value) {
-    return {};
-  }
-  const days = value === 'today' ? 1 : value === '7d' ? 7 : 30;
+function toItem(event: Event): EventItem {
+  const created = new Date(event.created_at).getTime();
   return {
-    from: wibStartOfDayIso(new Date()),
-    to: wibStartOfDayIso(new Date(Date.now() + days * 86_400_000)),
+    id: event.id,
+    slug: event.slug,
+    title: event.title,
+    category: EVENT_TYPE_LABEL[event.type] ?? 'Event',
+    startsAt: event.starts_at ? new Date(event.starts_at) : null,
+    venue: [event.venue_name, event.city].filter(Boolean).join(', ') || null,
+    posterUrl: event.cover_image_url || null,
+    goingCount: Number(event.going_count ?? 0),
+    goingNames: (event.going_names ?? []).slice(0, 3),
+    priceFrom: event.price_min == null ? null : Number(event.price_min),
+    isNew: Number.isFinite(created) && Date.now() - created < WEEK_MS,
   };
 }
 
-export default function ExploreScreen() {
-  const [searchText, setSearchText] = useState('');
+/* -------------------------------------------------------------------------- */
+/*  Format id-ID / WIB                                                        */
+/* -------------------------------------------------------------------------- */
+
+const TZ = 'Asia/Jakarta';
+
+const fmtDate = (d: Date, o: Intl.DateTimeFormatOptions) =>
+  d.toLocaleDateString('id-ID', { timeZone: TZ, ...o });
+
+const fmtTime = (d: Date) =>
+  `${d.toLocaleTimeString('id-ID', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })} WIB`;
+
+const fmtPrice = (n: number | null) =>
+  n == null ? null : n === 0 ? 'Gratis' : `Rp${n.toLocaleString('id-ID')}`;
+
+/* -------------------------------------------------------------------------- */
+/*  Small pieces                                                              */
+/* -------------------------------------------------------------------------- */
+
+function Poster({ uri, style }: { uri: string | null; style: StyleProp<ImageStyle> }) {
+  if (!uri) {
+    return (
+      <View style={[style as StyleProp<ViewStyle>, styles.posterFallback]}>
+        <Ionicons name="image-outline" size={28} color={c.mint300} />
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri }}
+      style={style}
+      contentFit="cover"
+      transition={200}
+      accessibilityIgnoresInvertColors
+    />
+  );
+}
+
+function DateBlock({ date }: { date: Date | null }) {
+  if (!date) return null;
+  return (
+    <View style={styles.dateBlock}>
+      <Text style={styles.dateDay}>{fmtDate(date, { day: '2-digit' })}</Text>
+      <Text style={styles.dateMonth}>{fmtDate(date, { month: 'short' }).replace('.', '')}</Text>
+    </View>
+  );
+}
+
+function GoingStack({ names, count }: { names: string[]; count: number }) {
+  if (count <= 0) return null;
+  return (
+    <View style={styles.going} accessibilityLabel={`${count} orang akan hadir`}>
+      {names.map((name, i) => (
+        <View
+          key={`${name}-${i}`}
+          style={[styles.goingAvatar, { marginLeft: i === 0 ? 0 : -10 }]}
+        >
+          <Text style={styles.goingInitials}>{initials(name)}</Text>
+        </View>
+      ))}
+      <Text style={[styles.goingText, names.length > 0 && styles.goingTextSpaced]}>
+        {count} akan hadir
+      </Text>
+    </View>
+  );
+}
+
+function EventCard({
+  item,
+  width,
+  onPress,
+}: {
+  item: EventItem;
+  width: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}${item.venue ? `, ${item.venue}` : ''}`}
+      style={({ pressed }) => [styles.card, { width }, pressed && styles.pressed]}
+    >
+      <View>
+        <Poster uri={item.posterUrl} style={styles.cardPoster} />
+        {item.isNew && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Baru</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.cardBody}>
+        <DateBlock date={item.startsAt} />
+        <Text style={styles.cardTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+      </View>
+      {item.venue && (
+        <View style={styles.metaRow}>
+          <Ionicons name="location-outline" size={16} color={c.muted} />
+          <Text style={styles.metaText} numberOfLines={1}>
+            {item.venue}
+          </Text>
+        </View>
+      )}
+      <GoingStack names={item.goingNames} count={item.goingCount} />
+    </Pressable>
+  );
+}
+
+function EventRow({ item, onPress }: { item: EventItem; onPress: () => void }) {
+  const price = fmtPrice(item.priceFrom);
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={item.title}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    >
+      <Poster uri={item.posterUrl} style={styles.rowPoster} />
+      <View style={styles.rowBody}>
+        <Text style={styles.rowTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        {item.startsAt && (
+          <Text style={styles.rowMeta}>
+            {fmtDate(item.startsAt, { day: 'numeric', month: 'short', year: '2-digit' })} ·{' '}
+            {fmtTime(item.startsAt)}
+          </Text>
+        )}
+        {price && <Text style={styles.rowPrice}>{price}</Text>}
+      </View>
+    </Pressable>
+  );
+}
+
+function Pulse({ style }: { style: StyleProp<ViewStyle> }) {
+  const [opacity] = useState(() => new Animated.Value(0.5));
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.5,
+          duration: 700,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacity]);
+  return <Animated.View style={[style, styles.pulse, { opacity }]} />;
+}
+
+function CardSkeleton({ width }: { width: number }) {
+  return (
+    <View style={[styles.card, { width }]}>
+      <Pulse style={styles.cardPoster} />
+      <Pulse style={styles.skeletonTitle} />
+      <Pulse style={styles.skeletonMeta} />
+    </View>
+  );
+}
+
+function Message({
+  title,
+  body,
+  action,
+  onAction,
+}: {
+  title: string;
+  body: string;
+  action?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <View style={styles.message}>
+      <Text style={styles.messageTitle}>{title}</Text>
+      <Text style={styles.messageBody}>{body}</Text>
+      {action && onAction && (
+        <Pressable onPress={onAction} accessibilityRole="button" style={styles.messageBtn}>
+          <Text style={styles.messageBtnText}>{action}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onSeeAll && (
+        <Pressable onPress={onSeeAll} accessibilityRole="link" hitSlop={12}>
+          <Text style={styles.seeAll}>Lihat semua</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Screen                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export default function HomeScreen() {
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+
   const [query, setQuery] = useState('');
-  const [type, setType] = useState<EventType | ''>('');
-  const [date, setDate] = useState<DateRange>('');
-  const [city, setCity] = useState('');
-  const [cityOpen, setCityOpen] = useState(false);
+  const [category, setCategory] = useState<string | null>(null);
 
-  const [items, setItems] = useState<Event[]>([]);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [moreError, setMoreError] = useState<string | null>(null);
+  const eventsQuery = useQuery(async () => {
+    const payload = await listEvents({ from: wibStartOfDayIso(new Date()), pageSize: 20 });
+    return payload.data.map(toItem);
+  }, []);
 
-  const requestId = useRef(0);
+  const items = eventsQuery.data ?? NO_ITEMS;
 
-  const citiesQuery = useQuery(() => listEvents({ pageSize: 100 }), []);
-  const cities = useMemo(() => {
-    const unique = new Set<string>();
-    for (const event of citiesQuery.data?.data ?? []) {
-      if (event.city) {
-        unique.add(event.city);
-      }
-    }
-    return Array.from(unique).sort((a, b) => a.localeCompare(b, 'id'));
-  }, [citiesQuery.data]);
+  const cardWidth = Math.round(width * 0.82);
+  const gap = 12;
 
-  const load = useCallback(
-    (page: number, append: boolean) => {
-      const id = ++requestId.current;
-      const range = dateRange(date);
-      if (append) {
-        setLoadingMore(true);
-        setMoreError(null);
-      } else {
-        setLoading(true);
-        setError(null);
-        setMoreError(null);
-      }
-
-      listEvents({
-        q: query,
-        type,
-        city,
-        from: range.from,
-        to: range.to,
-        page,
-        pageSize: PAGE_SIZE,
-      })
-        .then((response) => {
-          if (id !== requestId.current) {
-            return;
-          }
-          setItems((current) => {
-            if (!append) {
-              return response.data;
-            }
-            const seen = new Set(current.map((event) => event.id));
-            return [...current, ...response.data.filter((event) => !seen.has(event.id))];
-          });
-          setPagination(response.pagination);
-          setLoading(false);
-          setLoadingMore(false);
-          setRefreshing(false);
-        })
-        .catch((cause: unknown) => {
-          if (id !== requestId.current) {
-            return;
-          }
-          const message = errorMessage(cause);
-          setLoading(false);
-          setLoadingMore(false);
-          setRefreshing(false);
-          if (append) {
-            setMoreError(message);
-          } else {
-            setError(message);
-            setItems([]);
-            setPagination(null);
-          }
-        });
-    },
-    [city, date, query, type],
+  const categories = useMemo(
+    () => Array.from(new Set(items.map((event) => event.category))),
+    [items],
   );
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch when filters change
-    load(1, false);
-  }, [load]);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter(
+      (event) =>
+        (!category || event.category === category) &&
+        (!q ||
+          event.title.toLowerCase().includes(q) ||
+          (event.venue ?? '').toLowerCase().includes(q)),
+    );
+  }, [items, query, category]);
 
-  const hasMore = pagination !== null && pagination.page < pagination.total_pages;
-  const hasFilters = Boolean(query || type || city || date);
+  const recommended = useMemo(() => filtered.slice(0, 6), [filtered]);
 
-  const reset = () => {
-    Keyboard.dismiss();
-    setSearchText('');
-    setQuery('');
-    setType('');
-    setCity('');
-    setDate('');
-  };
+  const upcoming = useMemo(() => {
+    const shown = new Set(recommended.map((event) => event.id));
+    return filtered
+      .filter((event) => event.startsAt && !shown.has(event.id))
+      .sort((a, b) => a.startsAt!.getTime() - b.startsAt!.getTime())
+      .slice(0, 8);
+  }, [filtered, recommended]);
 
-  const submitSearch = () => {
-    Keyboard.dismiss();
-    setQuery(searchText.trim());
-  };
+  const openEvent = (slug: string) =>
+    router.push({ pathname: '/events/[slug]', params: { slug } });
 
-  const openEvent = (event: Event) => {
-    router.push({ pathname: '/events/[slug]', params: { slug: event.slug } });
-  };
-
-  const total = pagination?.total ?? 0;
+  const hasFilter = query.trim() !== '' || category !== null;
+  const loading = eventsQuery.loading;
+  const error = eventsQuery.error;
 
   return (
-    <Screen>
-      <PageHeader
-        heading="Temukan event"
-        subtitle="Filter berdasarkan kategori, tanggal, dan kota."
-      />
-
-      <View style={styles.search}>
-        <Ionicons name="search-outline" size={18} color={c.mint700} />
-        <TextInput
-          value={searchText}
-          onChangeText={setSearchText}
-          onSubmitEditing={submitSearch}
-          returnKeyType="search"
-          placeholder="Cari nama event atau venue"
-          placeholderTextColor={c.soft}
-          style={styles.searchInput}
-          accessibilityLabel="Cari nama event atau venue"
+    <View style={styles.screen}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Image
+          source={require('../../../assets/images/logo-ink.png')}
+          style={styles.logo}
+          contentFit="contain"
+          accessibilityLabel="Fayrly"
         />
-        {searchText ? (
-          <Pressable
-            onPress={() => {
-              setSearchText('');
+        <Pressable
+          onPress={() => router.push(user ? '/akun' : '/masuk')}
+          accessibilityRole="button"
+          accessibilityLabel={user ? 'Buka akun' : 'Masuk'}
+          style={({ pressed }) => [styles.userBtn, pressed && styles.pressed]}
+        >
+          <Ionicons name="person-outline" size={22} color={c.ink} />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={eventsQuery.refreshing}
+            onRefresh={eventsQuery.reload}
+            tintColor={c.mint700}
+            colors={[c.mint700]}
+          />
+        }
+      >
+        <View style={styles.searchWrap}>
+          <Ionicons name="search-outline" size={20} color={c.muted} style={styles.searchIcon} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Cari event atau venue"
+            placeholderTextColor="#7E8D88"
+            returnKeyType="search"
+            autoCorrect={false}
+            accessibilityLabel="Cari event atau venue"
+            style={styles.search}
+          />
+        </View>
+
+        {categories.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chips}
+          >
+            {[null, ...categories].map((cat) => {
+              const active = category === cat;
+              return (
+                <Pressable
+                  key={cat ?? 'semua'}
+                  onPress={() => setCategory(cat)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.chip, active && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {cat ?? 'Semua'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        <SectionHeader title="Rekomendasi" onSeeAll={() => router.push('/jelajahi')} />
+
+        {loading && (
+          <ScrollView horizontal scrollEnabled={false} contentContainerStyle={styles.carousel}>
+            <CardSkeleton width={cardWidth} />
+            <View style={{ width: gap }} />
+            <CardSkeleton width={cardWidth} />
+          </ScrollView>
+        )}
+
+        {!loading && error && items.length === 0 && (
+          <Message
+            title="Event belum bisa dimuat"
+            body={error}
+            action="Coba lagi"
+            onAction={eventsQuery.reload}
+          />
+        )}
+
+        {!loading && !error && filtered.length === 0 && (
+          <Message
+            title={hasFilter ? 'Tidak ada event yang cocok' : 'Belum ada event'}
+            body={
+              hasFilter
+                ? 'Ubah kata kunci atau pilih kategori lain.'
+                : 'Event yang diterbitkan penyelenggara akan muncul di sini.'
+            }
+            action={hasFilter ? 'Hapus pencarian' : undefined}
+            onAction={() => {
               setQuery('');
+              setCategory(null);
             }}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Bersihkan pencarian"
-          >
-            <Ionicons name="close-circle" size={18} color={c.soft} />
-          </Pressable>
-        ) : null}
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipRow}
-        keyboardShouldPersistTaps="handled"
-      >
-        {TYPE_OPTIONS.map((option) => (
-          <Chip
-            key={option.value || 'all'}
-            label={option.label}
-            active={type === option.value}
-            onPress={() => setType(option.value)}
           />
-        ))}
-      </ScrollView>
+        )}
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipRow}
-        keyboardShouldPersistTaps="handled"
-      >
-        {DATE_OPTIONS.map((option) => (
-          <Chip
-            key={option.value || 'any'}
-            label={option.label}
-            active={date === option.value}
-            onPress={() => setDate(option.value)}
+        {!loading && recommended.length > 0 && (
+          <FlatList
+            horizontal
+            data={recommended}
+            keyExtractor={(event) => event.id}
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={cardWidth + gap}
+            decelerationRate="fast"
+            snapToAlignment="start"
+            contentContainerStyle={styles.carousel}
+            ItemSeparatorComponent={() => <View style={{ width: gap }} />}
+            renderItem={({ item }) => (
+              <EventCard item={item} width={cardWidth} onPress={() => openEvent(item.slug)} />
+            )}
           />
-        ))}
-        <Pressable
-          onPress={() => setCityOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Pilih kota"
-          style={({ pressed }) => [styles.cityChip, city ? styles.cityChipActive : null, pressed && styles.pressed]}
-        >
-          <Ionicons name="location-outline" size={14} color={city ? c.paper : c.muted} />
-          <Text style={[styles.cityChipText, city ? styles.cityChipTextActive : null]} numberOfLines={1}>
-            {city || 'Semua kota'}
-          </Text>
-          <Ionicons name="chevron-down" size={12} color={city ? c.paper : c.soft} />
-        </Pressable>
-      </ScrollView>
+        )}
 
-      <View style={styles.resultBar}>
-        <Text style={styles.resultText}>
-          {loading ? 'Memuat event…' : `${total} event ditemukan`}
-        </Text>
-        {hasFilters ? (
-          <Pressable onPress={reset} hitSlop={8} accessibilityRole="button">
-            <Text style={styles.resetText}>Reset filter</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      {error && items.length === 0 ? (
-        <StateBlock
-          title="Daftar event tidak bisa dimuat"
-          body={error}
-          icon="cloud-offline-outline"
-          action="Coba lagi"
-          onAction={() => load(1, false)}
-        />
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                load(1, false);
-              }}
-              tintColor={c.mint700}
-            />
-          }
-          renderItem={({ item }) => (
-            <EventRow event={item} onPress={() => openEvent(item)} />
-          )}
-          ListEmptyComponent={
-            loading ? (
-              <View style={styles.skeletons}>
-                {[0, 1, 2, 3, 4].map((row) => (
-                  <View key={row} style={styles.skeletonRow}>
-                    <Skeleton height={44} width={42} radius={10} />
-                    <View style={styles.skeletonText}>
-                      <Skeleton height={14} width="80%" />
-                      <Skeleton height={12} width="50%" />
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <StateBlock
-                title={hasFilters ? 'Tidak ada event yang cocok' : 'Belum ada event'}
-                body={
-                  hasFilters
-                    ? 'Ubah kata kunci atau longgarkan filter untuk melihat event lain.'
-                    : 'Event yang diterbitkan penyelenggara akan muncul di sini.'
-                }
-                icon="funnel-outline"
-                action={hasFilters ? 'Reset filter' : undefined}
-                onAction={hasFilters ? reset : undefined}
-              />
-            )
-          }
-          ListFooterComponent={
-            <View style={styles.footer}>
-              {loadingMore ? <ActivityIndicator color={c.mint700} /> : null}
-              {moreError ? (
-                <View style={styles.moreError}>
-                  <Text style={styles.moreErrorText}>{moreError}</Text>
-                  <Button
-                    label="Coba lagi"
-                    variant="quiet"
-                    onPress={() => pagination && load(pagination.page + 1, true)}
-                  />
-                </View>
-              ) : null}
-              {!loadingMore && !moreError && hasMore ? (
-                <Button
-                  label="Muat lebih banyak"
-                  variant="ghost"
-                  onPress={() => pagination && load(pagination.page + 1, true)}
-                />
-              ) : null}
-              {!loading && !hasMore && items.length > 0 ? (
-                <Text style={styles.endText}>Semua event sudah ditampilkan.</Text>
-              ) : null}
+        {!loading && upcoming.length > 0 && (
+          <>
+            <SectionHeader title="Segera hadir" />
+            <View style={styles.list}>
+              {upcoming.map((event) => (
+                <EventRow key={event.id} item={event} onPress={() => openEvent(event.slug)} />
+              ))}
             </View>
-          }
-        />
-      )}
-
-      <Sheet visible={cityOpen} onClose={() => setCityOpen(false)}>
-        <Text style={styles.sheetTitle}>Pilih kota</Text>
-        <Pressable
-          onPress={() => {
-            setCity('');
-            setCityOpen(false);
-          }}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.cityOption, pressed && styles.pressed]}
-        >
-          <Text style={styles.cityOptionText}>Semua kota</Text>
-          {city === '' ? <Ionicons name="checkmark" size={18} color={c.mint700} /> : null}
-        </Pressable>
-        {citiesQuery.loading ? (
-          <ActivityIndicator color={c.mint700} style={styles.cityLoading} />
-        ) : null}
-        {cities.map((option) => (
-          <Pressable
-            key={option}
-            onPress={() => {
-              setCity(option);
-              setCityOpen(false);
-            }}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.cityOption, pressed && styles.pressed]}
-          >
-            <Text style={styles.cityOptionText}>{option}</Text>
-            {city === option ? <Ionicons name="checkmark" size={18} color={c.mint700} /> : null}
-          </Pressable>
-        ))}
-        {!citiesQuery.loading && cities.length === 0 ? (
-          <Text style={styles.cityEmpty}>Daftar kota belum tersedia.</Text>
-        ) : null}
-      </Sheet>
-    </Screen>
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Styles                                                                    */
+/* -------------------------------------------------------------------------- */
+
+const shadow = {
+  shadowColor: '#0F3D2E',
+  shadowOpacity: 0.07,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 3,
+} as const;
+
 const styles = StyleSheet.create({
-  search: {
-    marginHorizontal: 20,
+  flex: { flex: 1 },
+  screen: { flex: 1, backgroundColor: c.canvas },
+  pressed: { opacity: 0.85 },
+  content: { paddingTop: 8, paddingBottom: 24 },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    backgroundColor: c.canvas,
+  },
+  logo: { width: 82, height: 30 },
+  userBtn: {
+    width: 48,
     height: 48,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: c.line,
+    borderRadius: 16,
     backgroundColor: c.paper,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
+    ...shadow,
   },
-  searchInput: {
-    flex: 1,
-    fontFamily: f.regular,
-    fontSize: 13,
-    color: c.ink,
-    paddingVertical: 0,
-  },
-  chipRow: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    gap: 8,
-  },
-  cityChip: {
-    height: 36,
-    maxWidth: 190,
-    paddingHorizontal: 12,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: c.line,
+
+  searchWrap: { marginTop: 20, marginHorizontal: 20, justifyContent: 'center' },
+  searchIcon: { position: 'absolute', left: 16, zIndex: 1 },
+  search: {
+    height: 52,
+    borderRadius: 16,
     backgroundColor: c.paper,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  cityChipActive: {
-    backgroundColor: c.mint700,
-    borderColor: c.mint700,
-  },
-  cityChipText: {
-    fontFamily: f.medium,
-    fontSize: 12,
-    color: c.muted,
-  },
-  cityChipTextActive: {
-    color: c.paper,
-  },
-  resultBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  resultText: {
-    fontFamily: f.medium,
-    fontSize: 11,
-    color: c.muted,
-  },
-  resetText: {
-    fontFamily: f.semibold,
-    fontSize: 11,
-    color: c.mint700,
-  },
-  list: {
-    paddingBottom: 28,
-    flexGrow: 1,
-  },
-  skeletons: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    gap: 20,
-  },
-  skeletonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  skeletonText: {
-    flex: 1,
-    gap: 8,
-  },
-  footer: {
-    paddingTop: 16,
-    paddingBottom: 8,
-    gap: 8,
-  },
-  moreError: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  moreErrorText: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.crimson,
-    textAlign: 'center',
-    paddingHorizontal: 24,
-  },
-  endText: {
-    fontFamily: f.regular,
-    fontSize: 11,
-    color: c.soft,
-    textAlign: 'center',
-  },
-  sheetTitle: {
-    fontFamily: f.semibold,
-    fontSize: 18,
-    color: c.ink,
-    marginBottom: 10,
-  },
-  cityOption: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: hairline,
-    borderBottomColor: c.line,
-  },
-  cityOptionText: {
+    paddingLeft: 46,
+    paddingRight: 16,
     fontFamily: f.regular,
     fontSize: 14,
     color: c.ink,
+    ...shadow,
   },
-  cityLoading: {
-    marginVertical: 16,
+
+  chips: { paddingHorizontal: 20, paddingVertical: 18, gap: 10 },
+  chip: {
+    minHeight: 44,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    backgroundColor: c.paper,
+    borderWidth: 1,
+    borderColor: c.line,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cityEmpty: {
-    fontFamily: f.regular,
-    fontSize: 12,
-    color: c.muted,
-    paddingVertical: 16,
+  chipActive: { backgroundColor: c.mint700, borderColor: c.mint700 },
+  chipText: { fontFamily: f.medium, fontSize: 14, color: c.ink },
+  chipTextActive: { color: c.paper },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 14,
   },
-  pressed: {
-    opacity: 0.7,
+  sectionTitle: { fontFamily: f.semibold, fontSize: 18, color: c.ink },
+  seeAll: { fontFamily: f.medium, fontSize: 13, color: c.mint700 },
+
+  carousel: { paddingHorizontal: 20, paddingBottom: 20 },
+  card: { backgroundColor: c.paper, borderRadius: 24, padding: 12, ...shadow },
+  cardPoster: { width: '100%', aspectRatio: 16 / 10, borderRadius: 16 },
+  posterFallback: { backgroundColor: c.mint50, alignItems: 'center', justifyContent: 'center' },
+  pulse: { backgroundColor: c.mint50 },
+  skeletonTitle: { height: 18, borderRadius: 8, marginTop: 14, width: '80%' },
+  skeletonMeta: { height: 14, borderRadius: 8, marginTop: 10, width: '55%' },
+  badge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: c.paper,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
+  badgeText: { fontFamily: f.semibold, fontSize: 12, color: c.mint700 },
+  cardBody: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
+  dateBlock: {
+    width: 48,
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: c.mint100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateDay: { fontFamily: f.bold, fontSize: 17, color: c.ink, lineHeight: 22 },
+  dateMonth: { fontFamily: f.medium, fontSize: 12, color: c.mint700, lineHeight: 16 },
+  cardTitle: { flex: 1, fontFamily: f.semibold, fontSize: 15, lineHeight: 22, color: c.ink },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  metaText: { flex: 1, fontFamily: f.regular, fontSize: 13, color: c.muted },
+  going: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
+  goingAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: c.paper,
+    backgroundColor: c.mint100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goingInitials: { fontFamily: f.semibold, fontSize: 9, color: c.mint700 },
+  goingText: { fontFamily: f.medium, fontSize: 13, color: c.mint700 },
+  goingTextSpaced: { marginLeft: 8 },
+
+  list: { paddingHorizontal: 20, gap: 12 },
+  row: {
+    flexDirection: 'row',
+    gap: 14,
+    backgroundColor: c.paper,
+    borderRadius: 20,
+    padding: 10,
+    ...shadow,
+  },
+  rowPoster: { width: 78, height: 78, borderRadius: 14 },
+  rowBody: { flex: 1, justifyContent: 'center' },
+  rowTitle: { fontFamily: f.semibold, fontSize: 14, lineHeight: 20, color: c.ink },
+  rowMeta: { fontFamily: f.regular, fontSize: 12, color: c.muted, marginTop: 4 },
+  rowPrice: { fontFamily: f.semibold, fontSize: 13, color: c.crimson, marginTop: 4 },
+
+  message: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: c.paper,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  messageTitle: { fontFamily: f.semibold, fontSize: 15, color: c.ink },
+  messageBody: { fontFamily: f.regular, fontSize: 13, lineHeight: 20, color: c.muted, marginTop: 6 },
+  messageBtn: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    marginTop: 14,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    backgroundColor: c.mint700,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messageBtnText: { fontFamily: f.semibold, fontSize: 14, color: c.paper },
 });

@@ -47,7 +47,7 @@ const banks = [
 ];
 
 const methods = [
-  { method: 'bank', title: 'Transfer bank' },
+  { method: 'bank', title: 'Virtual Account' },
   { method: 'qris', title: 'QRIS', logo: require('../../assets/images/payments/qris.png') },
   { method: 'gopay', title: 'GoPay', logo: require('../../assets/images/payments/gopay.webp') },
 ] as const;

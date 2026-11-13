@@ -1,9 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PaymentPicker, type PaymentChoice } from '@/components/payment-picker';
 import { Button, ErrorBanner, NoticeModal, Screen, Skeleton, StateBlock } from '@/components/ui';
 import { getEvent } from '@/lib/api';
@@ -12,6 +6,12 @@ import { formatLongDate, formatMoney, formatTimeRange } from '@/lib/format';
 import { buildTiers, MAX_TICKETS, SECTIONS } from '@/lib/tickets';
 import { useQuery } from '@/lib/use-query';
 import { c, f, hairline, radius } from '@/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type CheckoutParams = { slug?: string; tier?: string; area?: string; quantity?: string };
 
@@ -102,7 +102,7 @@ function Checkout({ params }: { params: CheckoutParams }) {
   const total = tier.price * quantity;
   const free = total === 0;
   const paymentLabel = payment?.method === 'bank'
-    ? `Transfer bank · ${payment.bank}`
+    ? `Virtual Account · ${payment.bank}`
     : payment?.method === 'qris' ? 'QRIS' : payment?.method === 'gopay' ? 'GoPay' : 'Belum dipilih';
   const proceed = () => {
     if (!user || eventQuery.refreshing || eventQuery.error || (!free && !payment)) {
